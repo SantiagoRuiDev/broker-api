@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "vercel-build": "tsc",
     "start": "tsc && node dist/app.js",
     "dev": "nodemon --ext ts --exec ts-node src/app.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -30,7 +31,7 @@
     "express": "^4.21.2",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
-    "mariadb": "^3.4.0",
+    "mysql2": "^3.14.0",
     "sequelize": "^6.29.1",
     "uuid": "^11.1.0"
   }

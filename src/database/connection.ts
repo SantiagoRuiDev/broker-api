@@ -1,23 +1,19 @@
-import config from '../utils/config';
+import config from "../utils/config";
 import fs from "fs";
 import path from "path";
 import { Sequelize, DataTypes } from "sequelize";
 
-const options: any = {
-  dialect: "mariadb",
-  host: config.DB_HOST,
-  post: config.DB_PORT,
-  username: config.DB_USER,
-  password: config.DB_PASS,
-  database: config.DB_NAME,
-  logging: false,
-  native: false,
-  dialectOptions: {
-    allowPublicKeyRetrieval: true,
-  },
-};
-
-const sequelize = new Sequelize(options);
+const sequelize = new Sequelize(
+  config.DB_NAME || "",
+  config.DB_USER || "",
+  config.DB_PASS,
+  {
+    host: config.DB_HOST,
+    port: config.DB_PORT, // Nota: Debe ser "port" y no "post"
+    dialect: "mysql",
+    logging: false
+  }
+);
 
 const basename = path.basename(__filename);
 
