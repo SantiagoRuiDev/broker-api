@@ -16,11 +16,19 @@ export const model = (sequelize: any, DataTypes: any) => {
           allowNull: false,
           unique: true,
         },
+        ciudad: {
+          type: DataTypes.STRING,
+          allowNull: true,
+        },
         direccion: {
           type: DataTypes.STRING,
           allowNull: true,
         },
         contrato: {
+          type: DataTypes.STRING,
+          allowNull: true,
+        },
+        correo_encargado_sucursal: {
           type: DataTypes.STRING,
           allowNull: true,
         },

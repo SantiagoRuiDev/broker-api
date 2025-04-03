@@ -33,7 +33,7 @@ app.use("/api/clients", clientRoutes);
 
 app.use("/public/media", express.static("public/media"));
 
-conn.sync({ force: true }).then(async () => {
+conn.sync({ alter: true }).then(async () => {
   // Creamos un usuario
 
   const adminExist = await Usuarios.findOne({ where: { correo: "admin@mipanel.online" } });
@@ -47,8 +47,9 @@ conn.sync({ force: true }).then(async () => {
       .then(() => console.log("Usuario administrador ha sido creado por defecto"))
       .catch(() => console.log("Error al crear el usuario"));
   }
+});
 
-  app.listen(config.PORT, () => {
-    console.log(`SERVER RUNNING ON PORT: ${config.PORT}`);
-  });
+
+app.listen(config.PORT, () => {
+  console.log(`SERVER RUNNING ON PORT: ${config.PORT}`);
 });

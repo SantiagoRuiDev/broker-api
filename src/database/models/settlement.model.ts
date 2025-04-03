@@ -14,19 +14,13 @@ export const model = (sequelize: any, DataTypes: any) => {
           "Negocio Liberado",
           "Consolidado"
         ),
+        defaultValue: 'Pre Liquidacion',
         allowNull: false,
       },
       estado: {
         type: DataTypes.ENUM("Emitido", "Enviado", "Listo", "Pagado"),
+        defaultValue: 'Emitido',
         allowNull: false,
-      },
-      empresa: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      ciudad: {
-        type: DataTypes.STRING,
-        allowNull: true,
       },
       factura: {
         type: DataTypes.INTEGER,
@@ -44,8 +38,8 @@ export const model = (sequelize: any, DataTypes: any) => {
         type: DataTypes.DATE,
         allowNull: true,
       },
-      fecha_inicio: {
-        type: DataTypes.DATE,
+      d_inicial: {
+        type: DataTypes.INTEGER,
         allowNull: true,
       },
       poliza: {
@@ -53,7 +47,7 @@ export const model = (sequelize: any, DataTypes: any) => {
         allowNull: true,
       },
       anexo: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         allowNull: true,
       },
       endoso: {
@@ -64,8 +58,12 @@ export const model = (sequelize: any, DataTypes: any) => {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
-      S: {
+      cliente: {
         type: DataTypes.STRING,
+        allowNull: true,
+      },
+      f_contab: {
+        type: DataTypes.DATE,
         allowNull: true,
       },
       valor_prima: {
@@ -88,57 +86,13 @@ export const model = (sequelize: any, DataTypes: any) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      ori: {
+      Ori: {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      sAge: {
+      SAge: {
         type: DataTypes.STRING,
         allowNull: true,
-      },
-      fecha_facturacion: {
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
-      facturado: {
-        type: DataTypes.ENUM("Si", "No"),
-        allowNull: true,
-      },
-      cobrado: {
-        type: DataTypes.ENUM("Si", "No"),
-        allowNull: true,
-      },
-      fecha_cobrado: {
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
-      pagado: {
-        type: DataTypes.ENUM("Si", "No"),
-        allowNull: true,
-      },
-      fecha_liquidacion: {
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
-      por_enviar: {
-        type: DataTypes.ENUM("Si", "No"),
-        allowNull: true,
-      },
-      subagenteId: {
-        type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-          model: "Subagentes",
-          key: "id",
-        },
-      },
-      aseguradoraId: {
-        type: DataTypes.UUID,
-        allowNull: true,
-        references: {
-          model: "Aseguradoras",
-          key: "id",
-        },
       },
     },
     { updatedAt: false, timestamps: false }

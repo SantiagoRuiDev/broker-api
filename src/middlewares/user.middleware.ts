@@ -1,7 +1,8 @@
 import { validateSchemas } from "../utils/schema";
 import { NextFunction, Request, Response } from "express";
-import { authSchema, userSchema } from "../schemas/user.schema";
+import { authSchema, passwordSchema, userSchema } from "../schemas/user.schema";
 import { isValidToken } from "../utils/token";
+import { CustomRequest } from "../interfaces/custom_request.interface";
 
 export class UserMiddleware {
   async verifyAuthFields(
@@ -32,22 +33,35 @@ export class UserMiddleware {
       }
     }
   }
+  async verifyPasswordFields(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      validateSchemas(req.body, passwordSchema);
+      next();
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message, error });
+      }
+    }
+  }
 
   async verifyToken(
-    req: Request,
+    req: CustomRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
       // Obtener el token del header
       const token = req.headers.authorization?.split(" ")[1];
-      console.log(req.headers);
       if (!token) throw new Error("Token not provided");
 
       // Decodificar el token
       const decoded = isValidToken(token);
 
-      req.body.user = decoded;
+      req.user = decoded;
       next();
     } catch (error) {
       if (error instanceof Error) {

@@ -2,16 +2,17 @@ import { Request, Response } from "express";
 import { comparePassword, hashPassword } from "../utils/password";
 import { generateToken } from "../utils/token";
 import { Usuarios } from "../database/connection";
+import { CustomRequest } from "../interfaces/custom_request.interface";
 
 export class UserController {
   constructor() {}
 
-  async fetchData(req: Request, res: Response): Promise<void> {
+  async fetchData(req: CustomRequest, res: Response): Promise<void> {
     try {
-      const user = req.body.user;
+      const user = req.user.uuid;
 
       const existUser = await Usuarios.findOne({
-        where: { id: user.uuid },
+        where: { id: user },
       });
 
       if (!existUser)
@@ -98,14 +99,49 @@ export class UserController {
       const user = req.body;
       const uuid = req.params.id;
 
+      if(user == null || user == undefined){
+        throw new Error("Envia un cuerpo valido");
+      }
+
+      if(Object.values(user).filter((value) => value == "" || value == null).length > 0){
+        throw new Error("No puedes enviar campos vacios");
+      }
+
       const userExist = await Usuarios.findOne({
         where: { id: uuid },
       });
       if (!userExist) throw new Error("Este usuario no existe");
 
-      user.password = await hashPassword(user.password);
-
       await userExist.update(user);
+
+      res.status(201).json({ message: "Usuario actualizado correctamente" });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+  
+
+  async changePassword(req: CustomRequest, res: Response): Promise<void> {
+    try {
+      const { old_password, new_password, repeat_password } = req.body;
+      const uuid = (req.user) ? req.user.uuid : '';
+
+      const userExist = await Usuarios.findOne({
+        where: { id: uuid },
+      });
+      if (!userExist) throw new Error("Este usuario no existe");
+
+      if(await comparePassword(old_password, userExist.dataValues.password)){
+        if(new_password == repeat_password){
+          userExist.update({password: await hashPassword(new_password)})
+        } else {
+          throw new Error("Las contraseñas nuevas no son equivalentes");
+        }
+      } else {
+        throw new Error("La contraseña actual no coincide");
+      }
 
       res.status(201).json({ message: "Usuario actualizado correctamente" });
     } catch (error) {

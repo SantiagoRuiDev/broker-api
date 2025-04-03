@@ -13,7 +13,8 @@ router.post("/many", settlementController.createMany.bind(settlementController))
 router.post("/", settlementController.create.bind(settlementController));
 router.put("/:id", settlementController.update.bind(settlementController));
 router.delete("/:id", settlementController.delete.bind(settlementController));
-router.get("/:type", settlementController.getPayoutsByType.bind(settlementController));
+router.get("/search-by/:type", settlementController.getPayoutsByType.bind(settlementController));
+router.get("/:id", settlementController.getPayoutById.bind(settlementController));
 router.get("/", settlementController.getPayouts.bind(settlementController));
 
 export default router;

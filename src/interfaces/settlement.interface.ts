@@ -2,35 +2,24 @@ export interface ISettlement {
   id?: string;
   tipo: LiquidacionTypes;
   estado: LiquidacionStates;
-  empresa?: string;
-  ciudad?: string;
   factura?: number;
   documento?: number;
   orden?: string;
   fecha_vence?: Date;
-  fecha_inicio?: number;
+  d_inicial?: number;
   poliza?: string;
-  anexo?: string;
+  anexo?: number;
   endoso?: string;
   codigo?: number;
-  S?: Date;
+  cliente?: string;
+  f_contab?: Date;
   valor_prima?: number;
   comision?: number;
   F?: string;
   L?: string;
   P?: string;
-  ori?: string;
-  sAge?: string;
-  fecha_facturacion?: Date;
-  facturado?: "Si" | "No";
-  cobrado?: "Si" | "No";
-  fecha_cobrado?: Date;
-  pagado?: "Si" | "No";
-  fecha_liquidacion?: Date;
-  por_enviar?: "Si" | "No";
-  clientId?: string;
-  subagenteId?: string;
-  aseguradoraId?: string;
+  Ori?: string;
+  SAge?: string;
 }
 
 export enum LiquidacionTypes {

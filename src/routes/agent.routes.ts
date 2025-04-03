@@ -12,6 +12,7 @@ const userMiddleware = new UserMiddleware();
 router.post("/", agentController.create.bind(agentController));
 router.put("/:id", agentController.update.bind(agentController));
 router.delete("/:id", agentController.delete.bind(agentController));
+router.get("/:id", agentController.getAgentById.bind(agentController));
 router.get("/", agentController.getAgents.bind(agentController));
 
 export default router;

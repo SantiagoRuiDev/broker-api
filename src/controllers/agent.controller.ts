@@ -15,7 +15,8 @@ export class AgentController {
       if (alreadyExist)
         throw new Error("Un agente ya ha sido registrado bajo este correo");
 
-      const savedAgent = await Subagentes.create({id: uuidv4(), ...agent});
+      agent.id = uuidv4();
+      const savedAgent = await Subagentes.create(agent);
 
       res.status(201).json(savedAgent);
     } catch (error) {
@@ -33,6 +34,21 @@ export class AgentController {
         return;
       }
       res.status(200).json(agents);
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+
+  async getAgentById(req: Request, res: Response): Promise<void> {
+    try {
+      const agent = await Subagentes.findOne({where: {id: req.params.id}});
+      if (!agent) {
+        res.status(404).json({ message: "No encontramos agentes" });
+        return;
+      }
+      res.status(200).json(agent);
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
