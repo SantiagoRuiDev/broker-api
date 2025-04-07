@@ -13,5 +13,8 @@ router.post("/", agencyController.create.bind(agencyController));
 router.put("/:id", agencyController.update.bind(agencyController));
 router.delete("/:id", agencyController.delete.bind(agencyController));
 router.get("/", agencyController.getAgencies.bind(agencyController));
+router.post("/subsidiary/:id", agencyController.addSubsidiary.bind(agencyController));
+router.delete("/subsidiary/:id", agencyController.removeSubsidiary.bind(agencyController));
+router.get("/subsidiary/:id", agencyController.getSubsidiaries.bind(agencyController));
 
 export default router;

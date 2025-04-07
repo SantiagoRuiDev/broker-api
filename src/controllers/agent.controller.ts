@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Subagentes } from "../database/connection";
 import { v4 as uuidv4 } from "uuid";
+import { generateAgentCode } from "../utils/code";
 
 export class AgentController {
   constructor() {}
@@ -14,6 +15,24 @@ export class AgentController {
       });
       if (alreadyExist)
         throw new Error("Un agente ya ha sido registrado bajo este correo");
+
+      if (String(agent.codigo).trim() == "") {
+        let codeIsAvailable = false;
+        let tempCode = "";
+
+        while (!codeIsAvailable) {
+          tempCode = generateAgentCode();
+          const result = await Subagentes.findOne({
+            where: { codigo: tempCode },
+          });
+
+          if (!result) {
+            codeIsAvailable = true;
+          }
+        }
+
+        agent.codigo = tempCode;
+      }
 
       agent.id = uuidv4();
       const savedAgent = await Subagentes.create(agent);
@@ -43,7 +62,7 @@ export class AgentController {
 
   async getAgentById(req: Request, res: Response): Promise<void> {
     try {
-      const agent = await Subagentes.findOne({where: {id: req.params.id}});
+      const agent = await Subagentes.findOne({ where: { id: req.params.id } });
       if (!agent) {
         res.status(404).json({ message: "No encontramos agentes" });
         return;

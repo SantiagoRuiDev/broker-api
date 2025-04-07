@@ -86,7 +86,7 @@ export const model = (sequelize: any, DataTypes: any) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      Ori: {
+      Notas: {
         type: DataTypes.STRING,
         allowNull: true,
       },

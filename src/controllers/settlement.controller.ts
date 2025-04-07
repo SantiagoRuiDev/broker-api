@@ -64,6 +64,49 @@ export class SettlementController {
 
       // Asegúrate de que cada liquidación tiene la estructura esperada
       // Si tienes un tipo o validación adicional, puedes agregarla aquí
+      if (payouts.without_user.length > 0) {
+        const remainingWithoutUser: ISettlement[] = [];
+      
+        let clients = await Clientes.findAll();
+        const registeredEmails = clients.map((client) => client.dataValues.correo);
+      
+        for (const row of payouts.without_user) {
+          if (!registeredEmails.includes(row.cliente)) {
+            const newUser = await Clientes.create({
+              nombre: "Sin Nombre",
+              direccion: "Sin Direccion",
+              correo: row.cliente,
+            });
+            row.ClienteId = newUser.dataValues.id;
+            remainingWithoutUser.push(row);
+            clients.push(newUser); // actualizar lista
+            registeredEmails.push(row.cliente);
+          } else {
+            row.ClienteId = clients.find((client) => client.dataValues.correo === row.cliente)!.dataValues.id;
+            payouts.with_user.push(row);
+          }
+        }
+      
+        const filteredData = remainingWithoutUser.map((liq: ISettlement) => {
+          const { id, ...rest } = liq;
+          return Object.fromEntries(
+            Object.entries(rest).filter(([_, value]) => value !== undefined)
+          );
+        });
+      
+        filteredData.forEach((settlement) => {
+          if (settlement.F == "S" && settlement.L == "S" && settlement.P == "S") {
+            settlement.tipo = settlement.factura
+              ? LiquidacionTypes.PRE_LIQUIDACIONES
+              : LiquidacionTypes.NEGOCIO_LIBERADO;
+          } else {
+            settlement.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
+          }
+        });
+      
+        await Liquidaciones.bulkCreate(filteredData);
+      }
+
       if (payouts.with_user.length > 0) {
         if (payouts.with_user.some((payout: any) => !payout.tipo)) {
           res
@@ -84,43 +127,28 @@ export class SettlementController {
           )
         );
 
-        await Liquidaciones.bulkCreate(filteredData);
-      }
-
-      if (payouts.without_user.length > 0) {
-        if (payouts.without_user.some((payout: any) => !payout.tipo)) {
-          res
-            .status(400)
-            .json({ error: "Cada liquidación debe tener un tipo." });
-          return;
-        }
-        // Eliminar ID de cada liquidación para evitar conflictos con el UUID automático
-        const cleanData = payouts.without_user.map((liq: ISettlement) => {
-          const { id, ...rest } = liq;
-          return rest; // Retorna el objeto sin el ID
+        filteredData.forEach((settlement: ISettlement) => {
+          if (
+            settlement.F == "S" &&
+            settlement.L == "S" &&
+            settlement.P == "S"
+          ) {
+            if (!settlement.factura || String(settlement.factura).trim() == "") {
+              settlement.tipo = LiquidacionTypes.NEGOCIO_LIBERADO;
+            } else {
+              settlement.tipo = LiquidacionTypes.PRE_LIQUIDACIONES;
+            }
+          } else {
+            settlement.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
+          }
         });
 
-        // Filtrar los valores undefined para evitar errores en Sequelize
-        const filteredData = cleanData.map((liq: ISettlement) =>
-          Object.fromEntries(
-            Object.entries(liq).filter(([_, value]) => value !== undefined)
-          )
-        );
-
-        for(const row of payouts.without_user){
-          const newUser = await Clientes.create({
-            nombre: "Sin Nombre",
-            direccion: "Sin Direccion",
-            correo: row.cliente,
-            telefono: "Sin Telefono",
-          });
-          row.ClienteId = newUser.dataValues.id;
-        }
-
         await Liquidaciones.bulkCreate(filteredData);
       }
 
-      res.status(201).json({message: "Se han creado multiples liquidaciones"});
+      res
+        .status(201)
+        .json({ message: "Se han creado multiples liquidaciones" });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
@@ -152,7 +180,9 @@ export class SettlementController {
 
   async getPayoutById(req: Request, res: Response): Promise<void> {
     try {
-      const payout = await Liquidaciones.findOne({where: {id: req.params.id}});
+      const payout = await Liquidaciones.findOne({
+        where: { id: req.params.id },
+      });
       if (!payout) {
         res.status(404).json({ message: "No encontramos esa liquidación" });
         return;

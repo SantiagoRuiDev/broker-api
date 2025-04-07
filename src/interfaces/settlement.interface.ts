@@ -18,7 +18,7 @@ export interface ISettlement {
   F?: string;
   L?: string;
   P?: string;
-  Ori?: string;
+  Notas?: string;
   SAge?: string;
 }
 
