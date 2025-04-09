@@ -24,10 +24,17 @@ export class SettlementController {
 
       const agents = await Subagentes.findAll();
 
-      if(payout.SAge){
-        if(agents.filter(agent => agent.dataValues.SAge == payout.SAge).length == 0){
+      if (payout.SAge) {
+        if (
+          agents.filter((agent) => agent.dataValues.SAge == payout.SAge)
+            .length == 0
+        ) {
           // Crear SubAgente si no existe
-          await Subagentes.create({codigo: payout.SAge, estatus: 'Activo', rol: 'Subagente'});
+          await Subagentes.create({
+            codigo: payout.SAge,
+            estatus: "Activo",
+            rol: "Subagente",
+          });
         }
       } else {
         let codeIsAvailable = false;
@@ -35,14 +42,20 @@ export class SettlementController {
 
         while (!codeIsAvailable) {
           tempCode = generateAgentCode();
-          const result = (agents.filter((agent) => agent.dataValues.codigo == tempCode).length) > 0
+          const result =
+            agents.filter((agent) => agent.dataValues.codigo == tempCode)
+              .length > 0;
 
           if (!result) {
             codeIsAvailable = true;
           }
         }
 
-        await Subagentes.create({codigo: tempCode, estatus: 'Activo', rol: 'Subagente'});
+        await Subagentes.create({
+          codigo: tempCode,
+          estatus: "Activo",
+          rol: "Subagente",
+        });
         payout.SAge = tempCode;
       }
 
@@ -93,24 +106,27 @@ export class SettlementController {
         return {
           ...row,
           AseguradoraId: payouts.agency.id,
-          SucursaleId: payouts.subsidiary.id
-        }
-      })
+          SucursaleId: payouts.subsidiary.id,
+        };
+      });
 
       payouts.with_user = payouts.with_user.map((row: ISettlement) => {
         return {
           ...row,
           AseguradoraId: payouts.agency.id,
-          SucursaleId: payouts.subsidiary.id
-        }
-      })
+          SucursaleId: payouts.subsidiary.id,
+        };
+      });
 
-      if (payouts.without_user.length > 0) { // Realizamos validaciones para liquidaciones sin usuarios registrados
+      if (payouts.without_user.length > 0) {
+        // Realizamos validaciones para liquidaciones sin usuarios registrados
         const remainingWithoutUser: ISettlement[] = [];
-      
+
         let clients = await Clientes.findAll();
-        const registeredEmails = clients.map((client) => client.dataValues.correo);
-      
+        const registeredEmails = clients.map(
+          (client) => client.dataValues.correo
+        );
+
         for (const row of payouts.without_user) {
           if (!registeredEmails.includes(row.cliente)) {
             const newUser = await Clientes.create({
@@ -125,11 +141,13 @@ export class SettlementController {
             // Se crea el usuario que no existe y se le agrega a la lista, por si otras liquidaciones tienen el mismo usuario.
           } else {
             // Si el usuario existe en la lista de emails registrados se le asigna y se deriva a la lista con usuarios
-            row.ClienteId = clients.find((client) => client.dataValues.correo === row.cliente)!.dataValues.id;
+            row.ClienteId = clients.find(
+              (client) => client.dataValues.correo === row.cliente
+            )!.dataValues.id;
             payouts.with_user.push(row);
           }
         }
-      
+
         // Se filtra la lista para evitar que los elementos tengan el campo ID
         const filteredData = remainingWithoutUser.map((liq: ISettlement) => {
           const { id, ...rest } = liq;
@@ -138,31 +156,43 @@ export class SettlementController {
           );
         });
 
-        // Se revisa a que modulo corresponde cada Liquidación en base a los campos F, L y P
-        filteredData.forEach(async (settlement) => {
-          if (settlement.F == "S" && settlement.L == "S" && settlement.P == "S") {
+        for (const settlement of filteredData) {
+          if (
+            settlement.F == "S" &&
+            settlement.L == "S" &&
+            settlement.P == "S"
+          ) {
             settlement.tipo = settlement.factura
               ? LiquidacionTypes.PRE_LIQUIDACIONES
               : LiquidacionTypes.NEGOCIO_LIBERADO;
           } else {
             settlement.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
           }
-          
-          if(settlement.SAge){ // Si no existe un subagente en la liquidación se crea uno
-            if(agents.filter(agent => agent.dataValues.codigo == settlement.SAge).length == 0){
-              // Crear SubAgente si no existe
-              await Subagentes.create({codigo: settlement.SAge, estatus: 'Activo', rol: 'Subagente'});
+
+          if (settlement.SAge) {
+            const exists = agents.some(
+              (agent) => agent.dataValues.codigo === settlement.SAge
+            );
+            if (!exists) {
+              await Subagentes.create({
+                codigo: settlement.SAge,
+                estatus: "Activo",
+                rol: "Subagente",
+              });
               agents = await Subagentes.findAll();
             }
-          } else { // Si no tiene un codigo asignado, se crea un subagente y se le asigna a esta liquidación
+          } else {
             const tempCode = generateAgentCode();
-            await Subagentes.create({codigo: tempCode, estatus: 'Activo', rol: 'Subagente'});
+            await Subagentes.create({
+              codigo: tempCode,
+              estatus: "Activo",
+              rol: "Subagente",
+            });
             agents = await Subagentes.findAll();
             settlement.SAge = tempCode;
           }
-        });
+        }
 
-      
         await Liquidaciones.bulkCreate(filteredData);
       }
 
@@ -186,35 +216,42 @@ export class SettlementController {
           )
         );
 
-        filteredData.forEach(async (settlement: ISettlement) => {
+        for (const settlement of filteredData) {
           if (
             settlement.F == "S" &&
             settlement.L == "S" &&
             settlement.P == "S"
           ) {
-            if (!settlement.factura || String(settlement.factura).trim() == "") {
-              settlement.tipo = LiquidacionTypes.NEGOCIO_LIBERADO;
-            } else {
-              settlement.tipo = LiquidacionTypes.PRE_LIQUIDACIONES;
-            }
+            settlement.tipo = settlement.factura
+              ? LiquidacionTypes.PRE_LIQUIDACIONES
+              : LiquidacionTypes.NEGOCIO_LIBERADO;
           } else {
             settlement.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
           }
 
-          
-          if(settlement.SAge){
-            if(agents.filter(agent => agent.dataValues.SAge == settlement.SAge).length == 0){
-              // Crear SubAgente si no existe
-              await Subagentes.create({codigo: settlement.SAge, estatus: 'Activo', rol: 'Subagente'});
+          if (settlement.SAge) {
+            const exists = agents.some(
+              (agent) => agent.dataValues.codigo === settlement.SAge
+            );
+            if (!exists) {
+              await Subagentes.create({
+                codigo: settlement.SAge,
+                estatus: "Activo",
+                rol: "Subagente",
+              });
               agents = await Subagentes.findAll();
             }
           } else {
             const tempCode = generateAgentCode();
-            await Subagentes.create({codigo: tempCode, estatus: 'Activo', rol: 'Subagente'});
+            await Subagentes.create({
+              codigo: tempCode,
+              estatus: "Activo",
+              rol: "Subagente",
+            });
             agents = await Subagentes.findAll();
             settlement.SAge = tempCode;
           }
-        });
+        }
 
         await Liquidaciones.bulkCreate(filteredData);
       }
@@ -338,7 +375,9 @@ export class SettlementController {
         where: {},
       });
 
-      res.status(201).json({ message: "Liquidaciones eliminada correctamente" });
+      res
+        .status(201)
+        .json({ message: "Liquidaciones eliminada correctamente" });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
