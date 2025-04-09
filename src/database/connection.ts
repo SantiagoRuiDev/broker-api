@@ -11,7 +11,13 @@ const sequelize = new Sequelize(
     host: config.DB_HOST,
     port: config.DB_PORT, // Nota: Debe ser "port" y no "post"
     dialect: "mysql",
-    logging: false
+    logging: false,
+    pool: {
+      max: 5,         // máximo de conexiones simultáneas
+      min: 0,
+      acquire: 30000, // tiempo máximo en ms que Sequelize esperará para obtener una conexión
+      idle: 10000     // tiempo en ms que una conexión puede estar inactiva antes de ser liberada
+    }
   }
 );
 
