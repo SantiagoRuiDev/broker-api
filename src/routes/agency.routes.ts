@@ -10,6 +10,7 @@ const userMiddleware = new UserMiddleware();
 
 // Definir rutas
 router.post("/", agencyController.create.bind(agencyController));
+router.delete("/delete-all", agencyController.deleteAll.bind(agencyController));
 router.put("/:id", agencyController.update.bind(agencyController));
 router.delete("/:id", agencyController.delete.bind(agencyController));
 router.get("/", agencyController.getAgencies.bind(agencyController));

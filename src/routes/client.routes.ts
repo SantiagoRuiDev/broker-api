@@ -11,6 +11,7 @@ const userMiddleware = new UserMiddleware();
 // Definir rutas
 router.post("/", clientController.create.bind(clientController));
 router.put("/:id", clientController.update.bind(clientController));
+router.delete("/delete-all", clientController.deleteAll.bind(clientController));
 router.delete("/:id", clientController.delete.bind(clientController));
 router.get("/", clientController.getClients.bind(clientController));
 

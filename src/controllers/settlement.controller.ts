@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
-import { Clientes, Liquidaciones } from "../database/connection";
+import { Clientes, Liquidaciones, Subagentes } from "../database/connection";
 import { v4 as uuidv4 } from "uuid";
 import {
   ISettlement,
   LiquidacionTypes,
 } from "../interfaces/settlement.interface";
+import { generateAgentCode } from "../utils/code";
 
 export class SettlementController {
   constructor() {}
@@ -19,6 +20,30 @@ export class SettlementController {
 
       if (payout.cliente == "") {
         throw new Error("Ingresa el correo de un cliente valido");
+      }
+
+      const agents = await Subagentes.findAll();
+
+      if(payout.SAge){
+        if(agents.filter(agent => agent.dataValues.SAge == payout.SAge).length == 0){
+          // Crear SubAgente si no existe
+          await Subagentes.create({codigo: payout.SAge, estatus: 'Activo', rol: 'Subagente'});
+        }
+      } else {
+        let codeIsAvailable = false;
+        let tempCode = "";
+
+        while (!codeIsAvailable) {
+          tempCode = generateAgentCode();
+          const result = (agents.filter((agent) => agent.dataValues.codigo == tempCode).length) > 0
+
+          if (!result) {
+            codeIsAvailable = true;
+          }
+        }
+
+        await Subagentes.create({codigo: tempCode, estatus: 'Activo', rol: 'Subagente'});
+        payout.SAge = tempCode;
       }
 
       const user = await Clientes.findOne({
@@ -50,6 +75,7 @@ export class SettlementController {
   async createMany(req: Request, res: Response): Promise<void> {
     try {
       const payouts = req.body;
+      let agents = await Subagentes.findAll();
 
       // Verificar si los datos son un array
       if (
@@ -62,9 +88,24 @@ export class SettlementController {
         return;
       }
 
-      // Asegúrate de que cada liquidación tiene la estructura esperada
-      // Si tienes un tipo o validación adicional, puedes agregarla aquí
-      if (payouts.without_user.length > 0) {
+      // A los arreglos que contienen las liquidaciones recorremos cada elemento y asignamos la sucursal y aseguradora.
+      payouts.without_user = payouts.without_user.map((row: ISettlement) => {
+        return {
+          ...row,
+          AseguradoraId: payouts.agency.id,
+          SucursaleId: payouts.subsidiary.id
+        }
+      })
+
+      payouts.with_user = payouts.with_user.map((row: ISettlement) => {
+        return {
+          ...row,
+          AseguradoraId: payouts.agency.id,
+          SucursaleId: payouts.subsidiary.id
+        }
+      })
+
+      if (payouts.without_user.length > 0) { // Realizamos validaciones para liquidaciones sin usuarios registrados
         const remainingWithoutUser: ISettlement[] = [];
       
         let clients = await Clientes.findAll();
@@ -81,20 +122,24 @@ export class SettlementController {
             remainingWithoutUser.push(row);
             clients.push(newUser); // actualizar lista
             registeredEmails.push(row.cliente);
+            // Se crea el usuario que no existe y se le agrega a la lista, por si otras liquidaciones tienen el mismo usuario.
           } else {
+            // Si el usuario existe en la lista de emails registrados se le asigna y se deriva a la lista con usuarios
             row.ClienteId = clients.find((client) => client.dataValues.correo === row.cliente)!.dataValues.id;
             payouts.with_user.push(row);
           }
         }
       
+        // Se filtra la lista para evitar que los elementos tengan el campo ID
         const filteredData = remainingWithoutUser.map((liq: ISettlement) => {
           const { id, ...rest } = liq;
           return Object.fromEntries(
             Object.entries(rest).filter(([_, value]) => value !== undefined)
           );
         });
-      
-        filteredData.forEach((settlement) => {
+
+        // Se revisa a que modulo corresponde cada Liquidación en base a los campos F, L y P
+        filteredData.forEach(async (settlement) => {
           if (settlement.F == "S" && settlement.L == "S" && settlement.P == "S") {
             settlement.tipo = settlement.factura
               ? LiquidacionTypes.PRE_LIQUIDACIONES
@@ -102,7 +147,21 @@ export class SettlementController {
           } else {
             settlement.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
           }
+          
+          if(settlement.SAge){ // Si no existe un subagente en la liquidación se crea uno
+            if(agents.filter(agent => agent.dataValues.codigo == settlement.SAge).length == 0){
+              // Crear SubAgente si no existe
+              await Subagentes.create({codigo: settlement.SAge, estatus: 'Activo', rol: 'Subagente'});
+              agents = await Subagentes.findAll();
+            }
+          } else { // Si no tiene un codigo asignado, se crea un subagente y se le asigna a esta liquidación
+            const tempCode = generateAgentCode();
+            await Subagentes.create({codigo: tempCode, estatus: 'Activo', rol: 'Subagente'});
+            agents = await Subagentes.findAll();
+            settlement.SAge = tempCode;
+          }
         });
+
       
         await Liquidaciones.bulkCreate(filteredData);
       }
@@ -127,7 +186,7 @@ export class SettlementController {
           )
         );
 
-        filteredData.forEach((settlement: ISettlement) => {
+        filteredData.forEach(async (settlement: ISettlement) => {
           if (
             settlement.F == "S" &&
             settlement.L == "S" &&
@@ -140,6 +199,20 @@ export class SettlementController {
             }
           } else {
             settlement.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
+          }
+
+          
+          if(settlement.SAge){
+            if(agents.filter(agent => agent.dataValues.SAge == settlement.SAge).length == 0){
+              // Crear SubAgente si no existe
+              await Subagentes.create({codigo: settlement.SAge, estatus: 'Activo', rol: 'Subagente'});
+              agents = await Subagentes.findAll();
+            }
+          } else {
+            const tempCode = generateAgentCode();
+            await Subagentes.create({codigo: tempCode, estatus: 'Activo', rol: 'Subagente'});
+            agents = await Subagentes.findAll();
+            settlement.SAge = tempCode;
           }
         });
 
@@ -252,6 +325,20 @@ export class SettlementController {
       res
         .status(201)
         .json({ message: "Liquidación actualizada correctamente" });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+
+  async deleteAll(req: Request, res: Response): Promise<void> {
+    try {
+      await Liquidaciones.destroy({
+        where: {},
+      });
+
+      res.status(201).json({ message: "Liquidaciones eliminada correctamente" });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

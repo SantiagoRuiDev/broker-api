@@ -10,8 +10,8 @@ export const model = (sequelize: any, DataTypes: any) => {
       tipo: {
         type: DataTypes.ENUM(
           "Pre Liquidacion",
-          "Negocio Pendiente",
-          "Negocio Liberado",
+          "Negocio pendiente por liberar",
+          "Negocio pendiente por facturar",
           "Consolidado"
         ),
         defaultValue: 'Pre Liquidacion',

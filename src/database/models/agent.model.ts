@@ -14,18 +14,19 @@ export const model = (sequelize: any, DataTypes: any) => {
       rol: {
         type: DataTypes.ENUM("Subagente", "Lider"),
         allowNull: false,
+        default: 'Subagente'
       },
       nombres: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       apellidos: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       correo: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
         unique: true,
         validate: {
           isEmail: true,
@@ -34,6 +35,7 @@ export const model = (sequelize: any, DataTypes: any) => {
       estatus: {
         type: DataTypes.ENUM("Activo", "Inactivo", "Suspendido"),
         allowNull: false,
+        default: 'Activo'
       },
       fecha_nacimiento: {
         type: DataTypes.DATE,

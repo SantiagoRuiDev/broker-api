@@ -35,7 +35,7 @@ export class AgencyController {
       const agencies = await Aseguradoras.findAll({
         include: [
           {
-            model: Sucursales, 
+            model: Sucursales,
             required: false,
           },
         ],
@@ -52,10 +52,11 @@ export class AgencyController {
     }
   }
 
-  
   async getSubsidiaries(req: Request, res: Response): Promise<void> {
     try {
-      const subsidiaries = await Sucursales.findAll({where: {AseguradoraId: req.params.id}});
+      const subsidiaries = await Sucursales.findAll({
+        where: { AseguradoraId: req.params.id },
+      });
       res.status(200).json(subsidiaries);
     } catch (error) {
       if (error instanceof Error) {
@@ -77,6 +78,25 @@ export class AgencyController {
       await Sucursales.create(subsidiary);
 
       res.status(201).json({ message: "Sucursal añadida con exito" });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+
+  async deleteAll(req: Request, res: Response): Promise<void> {
+    try {
+      await Sucursales.destroy({
+        where: {},
+      });
+      await Aseguradoras.destroy({
+        where: {},
+      });
+
+      res
+        .status(201)
+        .json({ message: "Aseguradoras eliminadas correctamente" });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

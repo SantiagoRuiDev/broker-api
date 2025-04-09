@@ -95,6 +95,22 @@ export class AgentController {
     }
   }
 
+  async deleteAll(req: Request, res: Response): Promise<void> {
+    try {
+      await Subagentes.destroy({
+        where: {},
+      });
+
+      res
+        .status(201)
+        .json({ message: "Subagentes eliminados correctamente" });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+
   async delete(req: Request, res: Response): Promise<void> {
     try {
       const uuid = req.params.id;

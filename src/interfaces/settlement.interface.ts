@@ -10,7 +10,7 @@ export interface ISettlement {
   poliza?: string;
   anexo?: number;
   endoso?: string;
-  codigo?: number;
+  codigo?: string;
   cliente?: string;
   f_contab?: Date;
   valor_prima?: number;
@@ -24,8 +24,8 @@ export interface ISettlement {
 
 export enum LiquidacionTypes {
   PRE_LIQUIDACIONES = "Pre Liquidacion",
-  NEGOCIO_PENDIENTE = "Negocio Pendiente",
-  NEGOCIO_LIBERADO = "Negocio Liberado",
+  NEGOCIO_PENDIENTE = "Negocio pendiente por liberar",
+  NEGOCIO_LIBERADO = "Negocio pendiente por facturar",
   CONSOLIDADO = "Consolidado",
 }
 

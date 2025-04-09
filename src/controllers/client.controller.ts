@@ -60,6 +60,22 @@ export class ClientController {
     }
   }
 
+  async deleteAll(req: Request, res: Response): Promise<void> {
+    try {
+      await Clientes.destroy({
+        where: {},
+      });
+
+      res
+        .status(201)
+        .json({ message: "Clientes eliminados correctamente" });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+
   async delete(req: Request, res: Response): Promise<void> {
     try {
       const uuid = req.params.id;
