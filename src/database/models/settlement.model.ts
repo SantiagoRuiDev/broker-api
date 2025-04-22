@@ -89,11 +89,7 @@ export const model = (sequelize: any, DataTypes: any) => {
       Notas: {
         type: DataTypes.STRING,
         allowNull: true,
-      },
-      SAge: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
+      }
     },
     { updatedAt: false, timestamps: false }
   );

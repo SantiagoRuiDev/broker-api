@@ -5,10 +5,11 @@ export const model = (sequelize: any, DataTypes: any) => {
       id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
+        allowNull: false,
       },
       codigo: {
         type: DataTypes.STRING,
+        primaryKey: true,
         allowNull: false,
       },
       rol: {

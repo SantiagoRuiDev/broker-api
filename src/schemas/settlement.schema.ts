@@ -1,7 +1,6 @@
 import Joi from "joi";
 
 export const settlementSchema = Joi.object({
-  id: Joi.string().optional(),
   tipo: Joi.string()
     .valid(
       "Pre Liquidacion",
@@ -17,14 +16,12 @@ export const settlementSchema = Joi.object({
   ciudad: Joi.string().optional(),
   factura: Joi.number().optional(),
   documento: Joi.number().optional(),
-  orden: Joi.string().optional(),
   fecha_vence: Joi.date().optional(),
   fecha_inicio: Joi.number().optional(),
   poliza: Joi.string().optional(),
   anexo: Joi.string().optional(),
   endoso: Joi.string().optional(),
   codigo: Joi.number().optional(),
-  S: Joi.date().optional(),
   valor_prima: Joi.number().optional(),
   comision: Joi.number().optional(),
   F: Joi.string().optional(),

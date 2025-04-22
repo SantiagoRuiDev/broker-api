@@ -78,7 +78,7 @@ export class UserMiddleware {
     next: NextFunction
   ): Promise<void> {
     try {
-      // Obtener el token del header
+      // Obtener el usuario guardado en la petición
       const user = req.user;
 
       const userIsAdmin = await Usuarios.findOne({where: {id: user.uuid}});
@@ -106,7 +106,7 @@ export class UserMiddleware {
     next: NextFunction
   ): Promise<void> {
     try {
-      // Obtener el token del header
+      // Obtener el usuario guardado en la petición
       const user = req.user;
 
       const userIsStaff = await Usuarios.findOne({where: {id: user.uuid}});
