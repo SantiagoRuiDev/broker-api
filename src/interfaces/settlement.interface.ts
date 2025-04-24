@@ -22,6 +22,10 @@ export interface ISettlement {
   SAge?: string;
 }
 
+export function compareSettlements (arg1: ISettlement, arg2: ISettlement) {
+  return arg1.factura == arg2.factura && arg1.endoso == arg2.endoso && arg1.anexo == arg2.anexo && arg1.documento == arg2.documento && arg1.poliza == arg2.poliza && arg1.codigo == arg2.codigo && arg1.valor_prima == arg2.valor_prima && arg1.comision == arg2.comision
+}
+
 export enum LiquidacionTypes {
   PRE_LIQUIDACIONES = "Pre Liquidacion",
   NEGOCIO_PENDIENTE = "Negocio pendiente por liberar",

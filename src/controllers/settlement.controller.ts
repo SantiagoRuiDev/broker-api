@@ -13,23 +13,17 @@ export class SettlementController {
   async create(req: Request, res: Response): Promise<void> {
     try {
       const payout = req.body;
-      
+
       const user = await Clientes.findOne({
         where: { correo: payout.cliente },
       });
-
-      if(user){
-        const userHasLiquidation = await Liquidaciones.findOne({where: {ClienteId: user.dataValues.id, tipo: payout.tipo}});
-        if(userHasLiquidation){
-          throw new Error("El usuario ya esta relacionado a una " + payout.tipo);
-        }
-      }
 
       const agents = await Subagentes.findAll();
 
       if (payout.SAge) {
         if (
-          agents.filter((agent) => agent.dataValues.codigo == payout.SAge).length == 0
+          agents.filter((agent) => agent.dataValues.codigo == payout.SAge)
+            .length == 0
         ) {
           // Crear SubAgente si no existe
           await Subagentes.create({

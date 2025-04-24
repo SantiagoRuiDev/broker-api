@@ -19,7 +19,6 @@ export const model = (sequelize: any, DataTypes: any) => {
       telefono: {
         type: DataTypes.STRING,
         allowNull: true,
-        unique: true,
       },
       direccion: {
         type: DataTypes.STRING,
