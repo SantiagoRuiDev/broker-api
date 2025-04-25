@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Clientes, Liquidaciones, Subagentes } from "../database/connection";
+import { Clientes, Liquidaciones, Subagentes, Aseguradoras } from "../database/connection";
 import { v4 as uuidv4 } from "uuid";
 import {
   ISettlement,
@@ -220,6 +220,54 @@ export class SettlementController {
       res
         .status(201)
         .json({ message: "Se han creado multiples liquidaciones" });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+
+  async getMultiplePayouts(req: Request, res: Response): Promise<void> {
+    try {
+      // Extraer IDs desde query
+      let ids = req.query.id;
+  
+      // Si viene un solo ID, convertirlo en array
+      if (!ids) {
+        res.status(400).json({ message: "No se proporcionaron IDs." });
+        return
+      }
+  
+      if (!Array.isArray(ids)) {
+        ids = [ids]; // convertir a array si es un solo ID
+      }
+  
+      const payouts = await Liquidaciones.findAll({
+        where: {
+          id: ids, // Sequelize va a hacer un WHERE id IN (...)
+        },
+        include: [
+          {
+            model: Clientes,
+            required: false,
+          },
+          {
+            model: Aseguradoras,
+            required: false,
+          },
+          {
+            model: Subagentes,
+            required: false,
+          },
+        ],
+      });
+  
+      if (!payouts || payouts.length === 0) {
+        res.status(404).json({ message: "No encontramos Liquidaciones para los IDs proporcionados" });
+        return;
+      }
+  
+      res.status(200).json(payouts);
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
