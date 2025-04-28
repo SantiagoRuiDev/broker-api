@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import {
   compareSettlements,
   ISettlement,
+  LiquidacionStates,
   LiquidacionTypes,
 } from "../interfaces/settlement.interface";
 import { Liquidaciones } from "../database/connection";
@@ -70,14 +71,17 @@ export class SettlementMiddleware {
       if (settlement.factura == 0) {
         if (fieldsLength == 0) {
           settlement.tipo = LiquidacionTypes.NEGOCIO_LIBERADO;
+          settlement.estado = LiquidacionStates.POR_FACTURAR;
         } else {
           throw new Error("Porfavor completa los campos (F,L,P)");
         }
       } else {
         if (fieldsLength == 0) {
           settlement.tipo = LiquidacionTypes.PRE_LIQUIDACIONES;
+          settlement.estado = LiquidacionStates.LISTA;
         } else {
           settlement.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
+          settlement.estado = LiquidacionStates.POR_LIBERAR;
         }
       }
 
@@ -204,14 +208,17 @@ export class SettlementMiddleware {
           if (fieldsLength == 0) {
             // Si los campos estan completos y no tiene numero de factura
             payout.tipo = LiquidacionTypes.NEGOCIO_LIBERADO;
+            payout.estado = LiquidacionStates.POR_FACTURAR
           }
         } else {
           if (fieldsLength == 0) {
             // Si los campos estan completos y tiene numero de factura
             payout.tipo = LiquidacionTypes.PRE_LIQUIDACIONES;
+            payout.estado = LiquidacionStates.LISTA
           } else {
             // Si los campos estan incompletos y tiene numero de factura
             payout.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
+            payout.estado = LiquidacionStates.POR_LIBERAR
           }
         }
       }
@@ -349,13 +356,19 @@ export class SettlementMiddleware {
 
         if (payout.factura == 0) {
           if (fieldsLength == 0) {
+            // Si los campos estan completos y no tiene numero de factura
             payout.tipo = LiquidacionTypes.NEGOCIO_LIBERADO;
+            payout.estado = LiquidacionStates.POR_FACTURAR
           }
         } else {
           if (fieldsLength == 0) {
+            // Si los campos estan completos y tiene numero de factura
             payout.tipo = LiquidacionTypes.PRE_LIQUIDACIONES;
+            payout.estado = LiquidacionStates.LISTA
           } else {
+            // Si los campos estan incompletos y tiene numero de factura
             payout.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
+            payout.estado = LiquidacionStates.POR_LIBERAR
           }
         }
       }

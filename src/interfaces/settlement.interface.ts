@@ -33,9 +33,9 @@ export enum LiquidacionTypes {
   CONSOLIDADO = "Consolidado",
 }
 
-enum LiquidacionStates {
-  EMITIDO = "Emitido",
-  ENVIADO = "Enviado",
-  LISTO = "Listo",
-  PAGADO = "Pagado",
+export enum LiquidacionStates {
+  EMITIDO = "Emitida",
+  LISTA = "Lista",
+  POR_FACTURAR = "Por Facturar",
+  POR_LIBERAR = "Por Liberar",
 }

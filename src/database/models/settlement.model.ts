@@ -18,8 +18,8 @@ export const model = (sequelize: any, DataTypes: any) => {
         allowNull: false,
       },
       estado: {
-        type: DataTypes.ENUM("Emitido", "Enviado", "Listo", "Pagado"),
-        defaultValue: 'Emitido',
+        type: DataTypes.ENUM("Emitida", "Lista", "Por Facturar", "Por Liberar"),
+        defaultValue: 'Emitida',
         allowNull: false,
       },
       factura: {

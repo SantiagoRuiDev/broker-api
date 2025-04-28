@@ -36,7 +36,7 @@ app.use("/public/media", express.static("public/media"));
 conn.sync({ force: true }).then(async () => {
   // Creamos un usuario
 
-  const adminExist = await Usuarios.findOne({ where: { correo: "admin@mipanel.online" } });
+  const adminExist = await Usuarios.findOne({ where: { correo: "admin@brokers.com" } });
   if (!adminExist) {
     Usuarios.create({
       nombre: "Administrador",

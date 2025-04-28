@@ -80,6 +80,10 @@ export class AgentController {
       const agent = req.body;
       const uuid = req.params.id;
 
+      if(agent.codigo == ""){
+        throw new Error("El codigo de agente no puede estar vacio");
+      }
+
       const agentExist = await Subagentes.findOne({
         where: { id: uuid },
       });
