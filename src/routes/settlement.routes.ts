@@ -14,6 +14,7 @@ const settlementMiddleware = new SettlementMiddleware();
 router.post("/many", settlementMiddleware.createMany.bind(settlementMiddleware), settlementController.createMany.bind(settlementController));
 router.post("/", settlementMiddleware.create.bind(settlementMiddleware), settlementController.create.bind(settlementController));
 router.put("/:id", settlementController.update.bind(settlementController));
+router.put("/set-status/:id", settlementController.updateStatusById.bind(settlementController));
 router.delete('/delete-all', settlementController.deleteAll.bind(settlementController));
 router.delete("/:id", settlementController.delete.bind(settlementController));
 router.get("/search-by/:type", settlementController.getPayoutsByType.bind(settlementController));

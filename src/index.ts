@@ -39,9 +39,9 @@ conn.sync({ alter: true }).then(async () => {
   const adminExist = await Usuarios.findOne({ where: { correo: "admin@mipanel.online" } });
   if (!adminExist) {
     Usuarios.create({
-      nombre: "Maximiliano García",
+      nombre: "Administrador",
       rol: "Admin",
-      correo: "admin@mipanel.online",
+      correo: "admin@brokers.com",
       password: await hashPassword("123qwe"),
     })
       .then(() => console.log("Usuario administrador ha sido creado por defecto"))

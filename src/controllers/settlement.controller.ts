@@ -60,7 +60,7 @@ export class SettlementController {
         payout.ClienteId = user.dataValues.id;
       } else {
         const newUser = await Clientes.create({
-          nombre: "Sin Nombre",
+          nombre: payout.cliente,
           direccion: "Sin Direccion",
           correo: payout.cliente,
           telefono: "Sin Telefono",
@@ -113,7 +113,7 @@ export class SettlementController {
         for (const row of payouts.without_user) {
           if (!registeredEmails.includes(row.cliente)) {
             const newUser = await Clientes.create({
-              nombre: "Sin Nombre",
+              nombre: row.cliente,
               direccion: "Sin Direccion",
               correo: row.cliente,
             });
@@ -261,13 +261,15 @@ export class SettlementController {
           },
         ],
       });
+
+      const {count} = await Liquidaciones.findAndCountAll({where: {tipo: 'Consolidado'}});
   
       if (!payouts || payouts.length === 0) {
         res.status(404).json({ message: "No encontramos Liquidaciones para los IDs proporcionados" });
         return;
       }
   
-      res.status(200).json(payouts);
+      res.status(200).json({payouts, count});
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
@@ -369,7 +371,29 @@ export class SettlementController {
       await settlementExist.update(payout);
 
       res
-        .status(201)
+        .status(200)
+        .json({ message: "Liquidación actualizada correctamente" });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+
+  async updateStatusById(req: Request, res: Response): Promise<void> {
+    try {
+      const status = req.body.status;
+      const uuid = req.params.id;
+
+      const settlementExist = await Liquidaciones.findOne({
+        where: { id: uuid },
+      });
+      if (!settlementExist) throw new Error("Esta liquidación no existe");
+
+      await settlementExist.update({estado: status});
+
+      res
+        .status(200)
         .json({ message: "Liquidación actualizada correctamente" });
     } catch (error) {
       if (error instanceof Error) {

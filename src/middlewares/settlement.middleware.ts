@@ -55,10 +55,7 @@ export class SettlementMiddleware {
         throw new Error("Porfavor, completa el campo codigo");
       }
       if (settlement.endoso == "") {
-        throw new Error("Porfavor, completa el campo anexo");
-      }
-      if (settlement.anexo == 0) {
-        throw new Error("Porfavor, completa el campo anexo");
+        throw new Error("Porfavor, completa el campo endoso");
       }
       if (settlement.poliza == "") {
         throw new Error("Porfavor, completa el campo poliza");
@@ -179,9 +176,6 @@ export class SettlementMiddleware {
         }
         if (payout.endoso == "") {
           errors.push({ index: i, field: "Endoso", fill: true });
-        }
-        if (payout.anexo == 0) {
-          errors.push({ index: i, field: "Anexo", fill: true });
         }
         if (payout.poliza == "") {
           errors.push({ index: i, field: "Poliza", fill: true });
@@ -312,13 +306,6 @@ export class SettlementMiddleware {
           errors.push({
             index: payouts.with_user.length + i,
             field: "F/Contab",
-            fill: true,
-          });
-        }
-        if (payout.anexo == 0) {
-          errors.push({
-            index: payouts.with_user.length + i,
-            field: "Anexo",
             fill: true,
           });
         }
