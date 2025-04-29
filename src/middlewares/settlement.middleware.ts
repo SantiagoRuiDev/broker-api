@@ -17,27 +17,43 @@ export class SettlementMiddleware {
         throw new Error("Porfavor no envies un conjunto de liquidaciones");
       }
 
-      const searchFields = {
-        factura: Number(settlement.factura),
-        endoso: settlement.endoso,
-        anexo: settlement.anexo,
-        documento: settlement.documento,
-        poliza: settlement.poliza,
-        codigo: settlement.codigo,
-        valor_prima: settlement.valor_prima,
-        comision: settlement.comision,
-      };
-
-      const payoutAlreadyExist = await Liquidaciones.findAndCountAll({
-        where: searchFields,
-      });
-
-      if (payoutAlreadyExist.count >= 1) {
-        throw new Error("Estas intentando insertar una fila duplicada");
-      }
-
       const fields = [settlement.F, settlement.L, settlement.P];
       const fieldsLength = fields.filter((field) => field == "").length;
+
+      const payoutAlreadyExist = await Liquidaciones.findOne({
+        where: {
+          factura: settlement.factura,
+          endoso: settlement.endoso,
+          documento: settlement.documento,
+          poliza: settlement.poliza,
+          codigo: settlement.codigo,
+        },
+      });
+
+      if (payoutAlreadyExist) {
+        // Comprueba si el neg que ya existe es un negocio pendiente por liberar y puede convertirlo a pre-liquidación
+        const data = payoutAlreadyExist.dataValues;
+        if (data.factura > 0) {
+          if ([data.F, data.L, data.P].filter((i) => i == "").length < 3) {
+            if (fieldsLength == 0) {
+              payoutAlreadyExist.set({
+                F: "S",
+                L: "S",
+                P: "S",
+                tipo: LiquidacionTypes.PRE_LIQUIDACIONES,
+                estado: LiquidacionStates.LISTA,
+              });
+              await payoutAlreadyExist.save();
+              res.status(200).json({
+                message: "El negocio ya existia, fue actualizado correctamente",
+              });
+              return;
+            }
+          }
+        }
+
+        throw new Error("Estas intentando insertar una fila duplicada");
+      }
 
       if (fieldsLength == 3 && settlement.factura == 0) {
         throw new Error("Porfavor, completa los campos (F,L,P) y Factura");
@@ -119,22 +135,37 @@ export class SettlementMiddleware {
         const fields = [payout.F, payout.L, payout.P]; // Completo = [S, S, S]
         const fieldsLength = fields.filter((field) => field == "").length; // Si los campos estan vacios (3) si esta completo (0)
 
-        const searchFields = {
-          factura: Number(payout.factura),
-          endoso: payout.endoso,
-          anexo: payout.anexo,
-          documento: payout.documento,
-          poliza: payout.poliza,
-          codigo: payout.codigo,
-          valor_prima: payout.valor_prima,
-          comision: payout.comision,
-        };
-
         const payoutAlreadyExist = await Liquidaciones.findOne({
-          where: searchFields,
+          where: {
+            factura: payout.factura,
+            endoso: payout.endoso,
+            documento: payout.documento,
+            poliza: payout.poliza,
+            codigo: payout.codigo,
+          },
         });
 
         if (payoutAlreadyExist) {
+          // Comprueba si el neg que ya existe es un negocio pendiente por liberar y puede convertirlo a pre-liquidación
+          const data = payoutAlreadyExist.dataValues;
+          if (data.factura > 0) {
+            if ([data.F, data.L, data.P].filter((i) => i == "").length < 3) {
+              if (fieldsLength == 0) {
+                payoutAlreadyExist.set({
+                  F: "S",
+                  L: "S",
+                  P: "S",
+                  tipo: LiquidacionTypes.PRE_LIQUIDACIONES,
+                  estado: LiquidacionStates.LISTA,
+                });
+                await payoutAlreadyExist.save();
+                payouts.with_user = payouts.with_user.filter(
+                  (i: ISettlement) => i != payout
+                );
+                continue;
+              }
+            }
+          }
           errors.push({
             index: i,
             field: "Esta fila ya existe en el sistema",
@@ -208,17 +239,17 @@ export class SettlementMiddleware {
           if (fieldsLength == 0) {
             // Si los campos estan completos y no tiene numero de factura
             payout.tipo = LiquidacionTypes.NEGOCIO_LIBERADO;
-            payout.estado = LiquidacionStates.POR_FACTURAR
+            payout.estado = LiquidacionStates.POR_FACTURAR;
           }
         } else {
           if (fieldsLength == 0) {
             // Si los campos estan completos y tiene numero de factura
             payout.tipo = LiquidacionTypes.PRE_LIQUIDACIONES;
-            payout.estado = LiquidacionStates.LISTA
+            payout.estado = LiquidacionStates.LISTA;
           } else {
             // Si los campos estan incompletos y tiene numero de factura
             payout.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
-            payout.estado = LiquidacionStates.POR_LIBERAR
+            payout.estado = LiquidacionStates.POR_LIBERAR;
           }
         }
       }
@@ -228,24 +259,39 @@ export class SettlementMiddleware {
         const fields = [payout.F, payout.L, payout.P];
         const fieldsLength = fields.filter((field) => field == "").length;
 
-        const searchFields = {
-          factura: Number(payout.factura),
-          endoso: payout.endoso,
-          anexo: payout.anexo,
-          documento: payout.documento,
-          poliza: payout.poliza,
-          codigo: payout.codigo,
-          valor_prima: payout.valor_prima,
-          comision: payout.comision,
-        };
-
         const payoutAlreadyExist = await Liquidaciones.findOne({
-          where: searchFields,
+          where: {
+            factura: payout.factura,
+            endoso: payout.endoso,
+            documento: payout.documento,
+            poliza: payout.poliza,
+            codigo: payout.codigo,
+          },
         });
 
         if (payoutAlreadyExist) {
+          // Comprueba si el neg que ya existe es un negocio pendiente por liberar y puede convertirlo a pre-liquidación
+          const data = payoutAlreadyExist.dataValues;
+          if (data.factura > 0) {
+            if ([data.F, data.L, data.P].filter((i) => i == "").length < 3) {
+              if (fieldsLength == 0) {
+                payoutAlreadyExist.set({
+                  F: "S",
+                  L: "S",
+                  P: "S",
+                  tipo: LiquidacionTypes.PRE_LIQUIDACIONES,
+                  estado: LiquidacionStates.LISTA,
+                });
+                await payoutAlreadyExist.save();
+                payouts.without_user = payouts.without_user.filter(
+                  (i: ISettlement) => i != payout
+                );
+                continue;
+              }
+            }
+          }
           errors.push({
-            index: payouts.with_user.length + i,
+            index: i,
             field: "Esta fila ya existe en el sistema",
             fill: false,
           });
@@ -358,17 +404,17 @@ export class SettlementMiddleware {
           if (fieldsLength == 0) {
             // Si los campos estan completos y no tiene numero de factura
             payout.tipo = LiquidacionTypes.NEGOCIO_LIBERADO;
-            payout.estado = LiquidacionStates.POR_FACTURAR
+            payout.estado = LiquidacionStates.POR_FACTURAR;
           }
         } else {
           if (fieldsLength == 0) {
             // Si los campos estan completos y tiene numero de factura
             payout.tipo = LiquidacionTypes.PRE_LIQUIDACIONES;
-            payout.estado = LiquidacionStates.LISTA
+            payout.estado = LiquidacionStates.LISTA;
           } else {
             // Si los campos estan incompletos y tiene numero de factura
             payout.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
-            payout.estado = LiquidacionStates.POR_LIBERAR
+            payout.estado = LiquidacionStates.POR_LIBERAR;
           }
         }
       }
