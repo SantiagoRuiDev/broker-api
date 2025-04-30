@@ -11,6 +11,7 @@ const userMiddleware = new UserMiddleware();
 const settlementMiddleware = new SettlementMiddleware();
 
 // Definir rutas
+router.post("/liquidate", settlementController.liquidate.bind(settlementController));
 router.post("/many", settlementMiddleware.createMany.bind(settlementMiddleware), settlementController.createMany.bind(settlementController));
 router.post("/", settlementMiddleware.create.bind(settlementMiddleware), settlementController.create.bind(settlementController));
 router.put("/:id", settlementController.update.bind(settlementController));

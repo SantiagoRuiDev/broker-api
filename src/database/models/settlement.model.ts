@@ -17,6 +17,10 @@ export const model = (sequelize: any, DataTypes: any) => {
         defaultValue: 'Pre Liquidacion',
         allowNull: false,
       },
+      kanban: {
+        type: DataTypes.ENUM("Emitida", "Enviada", "Lista", "Pagada"),
+        allowNull: true,
+      },
       estado: {
         type: DataTypes.ENUM("Emitida", "Lista", "Por Facturar", "Por Liberar"),
         defaultValue: 'Emitida',

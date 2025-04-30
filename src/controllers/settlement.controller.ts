@@ -299,6 +299,37 @@ export class SettlementController {
     }
   }
 
+  async liquidate(req: Request, res: Response): Promise<void> {
+    try {
+      const rows: string[] = req.body.rows;
+  
+      if (!Array.isArray(rows) || rows.length === 0) {
+        res.status(400).json({ message: "Se requiere un array de IDs" });
+        return;
+      }
+  
+      const [updatedCount] = await Liquidaciones.update(
+        { kanban: "Emitida", tipo: "Consolidado", estado: "Emitida" },
+        {
+          where: {
+            id: rows, // Sequelize interpreta esto como IN
+          },
+        }
+      );
+  
+      if (updatedCount === 0) {
+        res.status(404).json({ message: "No se encontraron liquidaciones para actualizar" });
+        return;
+      }
+  
+      res.status(200).json({ message: `${updatedCount} liquidaciones actualizadas` });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+
   async getPayoutById(req: Request, res: Response): Promise<void> {
     try {
       const payout = await Liquidaciones.findOne({
@@ -390,11 +421,11 @@ export class SettlementController {
       });
       if (!settlementExist) throw new Error("Esta liquidación no existe");
 
-      await settlementExist.update({estado: status});
+      await settlementExist.update({kanban: status});
 
       res
         .status(200)
-        .json({ message: "Liquidación actualizada correctamente" });
+        .json({ message: "Estado actualizado correctamente" });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
