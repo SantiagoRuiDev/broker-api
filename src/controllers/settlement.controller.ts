@@ -16,6 +16,7 @@ import { generateAgentCode } from "../utils/code";
 import PDF, { CreateOptions } from "html-pdf";
 import { getLiquidationTemplate } from "../templates/liquidation.template";
 import archiver from "archiver";
+import { Sequelize } from "sequelize";
 
 export class SettlementController {
   constructor() {}
@@ -272,8 +273,13 @@ export class SettlementController {
         ],
       });
 
-      const { count } = await Liquidaciones.findAndCountAll({
-        where: { tipo: "Consolidado" },
+      const lastLiquidation = await Liquidaciones.findOne({
+        where: { tipo: 'Consolidado' },
+        order: [
+          [Sequelize.literal(`CAST(SUBSTRING_INDEX(numero_liquidacion, '/', -1) AS UNSIGNED)`), 'DESC'], // Año
+          [Sequelize.literal(`CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(numero_liquidacion, '/', 2), '/', -1) AS UNSIGNED)`), 'DESC'], // Mes
+          [Sequelize.literal(`CAST(SUBSTRING_INDEX(numero_liquidacion, '/', 1) AS UNSIGNED)`), 'DESC'], // Secuencial
+        ],
       });
 
       if (!payouts || payouts.length === 0) {
@@ -283,7 +289,7 @@ export class SettlementController {
         return;
       }
 
-      res.status(200).json({ payouts, count });
+      res.status(200).json({ payouts: payouts, count: Number(lastLiquidation?.dataValues.numero_liquidacion.split('/')[0])+1 });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
