@@ -1,11 +1,21 @@
 import { Request, Response } from "express";
-import { Clientes, Liquidaciones, Subagentes, Aseguradoras } from "../database/connection";
+import {
+  Clientes,
+  Liquidaciones,
+  Subagentes,
+  Aseguradoras,
+} from "../database/connection";
 import { v4 as uuidv4 } from "uuid";
 import {
   ISettlement,
+  ISettlementExport,
+  ISettlementMapped,
   LiquidacionTypes,
 } from "../interfaces/settlement.interface";
 import { generateAgentCode } from "../utils/code";
+import PDF, { CreateOptions } from "html-pdf";
+import { getLiquidationTemplate } from "../templates/liquidation.template";
+import archiver from "archiver";
 
 export class SettlementController {
   constructor() {}
@@ -231,17 +241,17 @@ export class SettlementController {
     try {
       // Extraer IDs desde query
       let ids = req.query.id;
-  
+
       // Si viene un solo ID, convertirlo en array
       if (!ids) {
         res.status(400).json({ message: "No se proporcionaron IDs." });
-        return
+        return;
       }
-  
+
       if (!Array.isArray(ids)) {
         ids = [ids]; // convertir a array si es un solo ID
       }
-  
+
       const payouts = await Liquidaciones.findAll({
         where: {
           id: ids, // Sequelize va a hacer un WHERE id IN (...)
@@ -262,14 +272,18 @@ export class SettlementController {
         ],
       });
 
-      const {count} = await Liquidaciones.findAndCountAll({where: {tipo: 'Consolidado'}});
-  
+      const { count } = await Liquidaciones.findAndCountAll({
+        where: { tipo: "Consolidado" },
+      });
+
       if (!payouts || payouts.length === 0) {
-        res.status(404).json({ message: "No encontramos Liquidaciones para los IDs proporcionados" });
+        res.status(404).json({
+          message: "No encontramos Liquidaciones para los IDs proporcionados",
+        });
         return;
       }
-  
-      res.status(200).json({payouts, count});
+
+      res.status(200).json({ payouts, count });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
@@ -284,6 +298,10 @@ export class SettlementController {
           {
             model: Clientes, // Modelo de Clientes
             required: false, // `false` para LEFT JOIN, `true` para INNER JOIN
+          },
+          {
+            model: Subagentes,
+            required: false,
           },
         ],
       });
@@ -302,27 +320,54 @@ export class SettlementController {
   async liquidate(req: Request, res: Response): Promise<void> {
     try {
       const rows: string[] = req.body.rows;
-  
+      const liq_date = req.body.liquidation_date;
+      const liq_number = req.body.liquidation_number;
+      let liq_total = req.body.total;
+      let liq_loan = req.body.loan;
+
       if (!Array.isArray(rows) || rows.length === 0) {
         res.status(400).json({ message: "Se requiere un array de IDs" });
         return;
       }
-  
+
+      const liquidationAlreadyExist = await Liquidaciones.findAll({
+        where: { numero_liquidacion: liq_number },
+      });
+
+      if (liquidationAlreadyExist.length > 0) {
+        // Si la liquidación ya existe, obtiene los valores calculados anteriormente y los recalcula
+        liq_total += liquidationAlreadyExist[0].dataValues.total_liquidado;
+        liq_loan += liquidationAlreadyExist[0].dataValues.prestamo;
+        rows.push(...liquidationAlreadyExist.map((l) => l.dataValues.id)); // Empuja el arreglo de las ID ya registradas en la DB
+      }
+
       const [updatedCount] = await Liquidaciones.update(
-        { kanban: "Emitida", tipo: "Consolidado", estado: "Emitida" },
+        {
+          kanban: "Emitida",
+          tipo: "Consolidado",
+          estado: "Emitida",
+          fecha_liquidacion: liq_date,
+          numero_liquidacion: liq_number,
+          total_liquidado: liq_total,
+          prestamo: liq_loan,
+        },
         {
           where: {
             id: rows, // Sequelize interpreta esto como IN
           },
         }
       );
-  
+
       if (updatedCount === 0) {
-        res.status(404).json({ message: "No se encontraron liquidaciones para actualizar" });
+        res
+          .status(404)
+          .json({ message: "No se encontraron liquidaciones para actualizar" });
         return;
       }
-  
-      res.status(200).json({ message: `${updatedCount} liquidaciones actualizadas` });
+
+      res
+        .status(200)
+        .json({ message: `${updatedCount} liquidaciones actualizadas` });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
@@ -414,18 +459,22 @@ export class SettlementController {
   async updateStatusById(req: Request, res: Response): Promise<void> {
     try {
       const status = req.body.status;
-      const uuid = req.params.id;
+      // Extraer IDs desde query
+      let ids = req.query.id;
 
-      const settlementExist = await Liquidaciones.findOne({
-        where: { id: uuid },
-      });
-      if (!settlementExist) throw new Error("Esta liquidación no existe");
+      // Si viene un solo ID, convertirlo en array
+      if (!ids) {
+        res.status(400).json({ message: "No se proporcionaron IDs." });
+        return;
+      }
 
-      await settlementExist.update({kanban: status});
+      if (!Array.isArray(ids)) {
+        ids = [ids]; // convertir a array si es un solo ID
+      }
 
-      res
-        .status(200)
-        .json({ message: "Estado actualizado correctamente" });
+      await Liquidaciones.update({ kanban: status }, { where: { id: ids } });
+
+      res.status(200).json({ message: "Estado actualizado correctamente" });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
@@ -461,6 +510,103 @@ export class SettlementController {
       await settlementExist.destroy();
 
       res.status(201).json({ message: "Liquidación eliminada correctamente" });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+
+  async getPendingPdfs(req: Request, res: Response): Promise<void> {
+    try {
+      // Extraer IDs desde query
+      let ids = req.query.id;
+
+      // Si viene un solo ID, convertirlo en array
+      if (!ids) {
+        res.status(400).json({ message: "No se proporcionaron IDs." });
+        return;
+      }
+
+      if (!Array.isArray(ids)) {
+        ids = [ids]; // convertir a array si es un solo ID
+      }
+
+      const payouts = await Liquidaciones.findAll({
+        where: {
+          id: ids, // Sequelize va a hacer un WHERE id IN (...)
+        },
+        include: [
+          {
+            model: Clientes,
+            required: false,
+          },
+          {
+            model: Aseguradoras,
+            required: false,
+          },
+          {
+            model: Subagentes,
+            required: false,
+          },
+        ],
+      });
+      const filteredRows: ISettlementExport[] = [];
+
+      Array.from(payouts).forEach((liq) => {
+        const exist = filteredRows.find(
+          (i: ISettlementExport) => i.codigo_agente === liq.dataValues.SubagenteCodigo
+        );
+        if (exist) {
+          exist.clientes.push(liq.dataValues.Cliente?.nombre || "");
+        } else {
+          filteredRows.push({
+            codigo_agente: liq.dataValues.SubagenteCodigo || "",
+            clientes: [liq.dataValues.Cliente?.nombre || ""],
+          });
+        }
+      });
+
+      const archive = archiver("zip", { zlib: { level: 9 } });
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="liquidaciones.zip"'
+      );
+      archive.pipe(res);
+
+      let remaining = filteredRows.length;
+
+      for (const row of filteredRows) {
+        const options: CreateOptions = {
+          format: "A4",
+          orientation: "portrait",
+        };
+
+        // Generar el PDF
+        PDF.create(getLiquidationTemplate(row), options).toBuffer(
+          (err, buffer) => {
+            if (err) {
+              console.error(
+                `Error generando PDF para ${row.codigo_agente}`,
+                err
+              );
+              return;
+            }
+
+            // Agregar el PDF al archivo zip
+            archive.append(buffer, {
+              name: `negocios_pendientes_${row.codigo_agente}.pdf`,
+            });
+
+            remaining--;
+            if (remaining === 0) {
+              // Finalizar el zip cuando todos estén agregados
+              archive.finalize();
+            }
+          }
+        );
+      }
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

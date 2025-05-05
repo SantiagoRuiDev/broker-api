@@ -93,7 +93,23 @@ export const model = (sequelize: any, DataTypes: any) => {
       Notas: {
         type: DataTypes.STRING,
         allowNull: true,
-      }
+      },
+      numero_liquidacion: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      fecha_liquidacion: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      total_liquidado: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+      },
+      prestamo: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+      },
     },
     { updatedAt: false, timestamps: false }
   );

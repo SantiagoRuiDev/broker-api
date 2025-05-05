@@ -14,9 +14,11 @@
   "description": "API for Brokers Agency",
   "type": "commonjs",
   "devDependencies": {
+    "@types/archiver": "^6.0.3",
     "@types/bcrypt": "^5.0.2",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
+    "@types/html-pdf": "^3.0.3",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.13.13",
     "@types/sequelize": "^4.28.14",
@@ -25,10 +27,12 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "html-pdf": "^3.0.1",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.14.0",
