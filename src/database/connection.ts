@@ -56,7 +56,8 @@ export const {
   Liquidaciones,
   Polizas,
   Subagentes,
-  Sucursales
+  Sucursales,
+  Configuracion
 } = sequelize.models;
 
 Subagentes.hasMany(Liquidaciones);

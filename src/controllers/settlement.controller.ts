@@ -4,19 +4,23 @@ import {
   Liquidaciones,
   Subagentes,
   Aseguradoras,
+  Configuracion,
 } from "../database/connection";
 import { v4 as uuidv4 } from "uuid";
 import {
   ISettlement,
   ISettlementExport,
   ISettlementMapped,
+  KanbanStates,
   LiquidacionTypes,
 } from "../interfaces/settlement.interface";
 import { generateAgentCode } from "../utils/code";
 import PDF, { CreateOptions } from "html-pdf";
-import { getLiquidationTemplate } from "../templates/liquidation.template";
+import { getPendingTemplate } from "../templates/pending.template";
 import archiver from "archiver";
 import { Sequelize } from "sequelize";
+import { getLiquidationTemplate } from "../templates/liquidation.template";
+import { getTextTemplate } from "../templates/text.template";
 
 export class SettlementController {
   constructor() {}
@@ -274,11 +278,26 @@ export class SettlementController {
       });
 
       const lastLiquidation = await Liquidaciones.findOne({
-        where: { tipo: 'Consolidado' },
+        where: { tipo: "Consolidado" },
         order: [
-          [Sequelize.literal(`CAST(SUBSTRING_INDEX(numero_liquidacion, '/', -1) AS UNSIGNED)`), 'DESC'], // Año
-          [Sequelize.literal(`CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(numero_liquidacion, '/', 2), '/', -1) AS UNSIGNED)`), 'DESC'], // Mes
-          [Sequelize.literal(`CAST(SUBSTRING_INDEX(numero_liquidacion, '/', 1) AS UNSIGNED)`), 'DESC'], // Secuencial
+          [
+            Sequelize.literal(
+              `CAST(SUBSTRING_INDEX(numero_liquidacion, '/', -1) AS UNSIGNED)`
+            ),
+            "DESC",
+          ], // Año
+          [
+            Sequelize.literal(
+              `CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(numero_liquidacion, '/', 2), '/', -1) AS UNSIGNED)`
+            ),
+            "DESC",
+          ], // Mes
+          [
+            Sequelize.literal(
+              `CAST(SUBSTRING_INDEX(numero_liquidacion, '/', 1) AS UNSIGNED)`
+            ),
+            "DESC",
+          ], // Secuencial
         ],
       });
 
@@ -289,7 +308,11 @@ export class SettlementController {
         return;
       }
 
-      res.status(200).json({ payouts: payouts, count: Number(lastLiquidation?.dataValues.numero_liquidacion.split('/')[0])+1 });
+      res.status(200).json({
+        payouts: payouts,
+        count:
+          Number(lastLiquidation?.dataValues.numero_liquidacion.split("/")[0]) || 0 + 1,
+      });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
@@ -479,6 +502,35 @@ export class SettlementController {
       }
 
       await Liquidaciones.update({ kanban: status }, { where: { id: ids } });
+      
+      if (status == KanbanStates.LISTA) {
+        const liq = await Liquidaciones.findOne({
+          where: { id: ids[0] },
+          include: [
+            {
+              model: Clientes,
+              required: false,
+            },
+            {
+              model: Aseguradoras,
+              required: false,
+            },
+            {
+              model: Subagentes,
+              required: false,
+            },
+          ],
+        });
+
+        const config = await Configuracion.findOne({where: {id: "CONFIGURACION"}})
+        res.setHeader(
+          "Content-Disposition",
+          'attachment; filename="archivo.txt"'
+        );
+        res.setHeader("Content-Type", "text/plain");
+        res.status(200).send(getTextTemplate(liq?.dataValues, config?.dataValues));
+        return; // <-- ¡Esto es importante!
+      }
 
       res.status(200).json({ message: "Estado actualizado correctamente" });
     } catch (error) {
@@ -561,14 +613,15 @@ export class SettlementController {
 
       Array.from(payouts).forEach((liq) => {
         const exist = filteredRows.find(
-          (i: ISettlementExport) => i.codigo_agente === liq.dataValues.SubagenteCodigo
+          (i: ISettlementExport) =>
+            i.codigo_agente === liq.dataValues.SubagenteCodigo
         );
         if (exist) {
-          exist.clientes.push(liq.dataValues.Cliente?.nombre || "");
+          exist.liquidaciones.push(liq.dataValues);
         } else {
           filteredRows.push({
             codigo_agente: liq.dataValues.SubagenteCodigo || "",
-            clientes: [liq.dataValues.Cliente?.nombre || ""],
+            liquidaciones: [liq.dataValues],
           });
         }
       });
@@ -590,7 +643,7 @@ export class SettlementController {
         };
 
         // Generar el PDF
-        PDF.create(getLiquidationTemplate(row), options).toBuffer(
+        PDF.create(getPendingTemplate(row.liquidaciones), options).toBuffer(
           (err, buffer) => {
             if (err) {
               console.error(
@@ -613,6 +666,123 @@ export class SettlementController {
           }
         );
       }
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+  async getLiquidationTXT(req: Request, res: Response): Promise<void> {
+    try {
+      let {id} = req.query
+      
+      // Si viene un solo ID, convertirlo en array
+      if (!id) {
+        res.status(400).json({ message: "No se proporcionaron IDs." });
+        return;
+      }
+
+      if (!Array.isArray(id)) {
+        id = [id]; // convertir a array si es un solo ID
+      }
+
+      const liq = await Liquidaciones.findOne({
+        where: { numero_liquidacion: id[0] },
+        include: [
+          {
+            model: Clientes,
+            required: false,
+          },
+          {
+            model: Aseguradoras,
+            required: false,
+          },
+          {
+            model: Subagentes,
+            required: false,
+          },
+        ],
+      });
+
+      if(!liq){
+        throw new Error("Liquidación no encontrada");
+      }
+
+      const config = await Configuracion.findOne({where: {id: "CONFIGURACION"}})
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="pago_liquidacion.txt"'
+      );
+      res.setHeader("Content-Type", "text/plain");
+      res.status(200).send(getTextTemplate(liq?.dataValues, config?.dataValues));
+      return; // <-- ¡Esto es importante!
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+
+
+  async getLiquidationPDF(req: Request, res: Response): Promise<void> {
+    try {
+      // Extraer IDs desde query
+      const { id } = req.query;
+
+      // Si viene un solo ID, convertirlo en array
+      if (!id) {
+        res.status(400).json({ message: "No se proporcionaron ID." });
+        return;
+      }
+
+      const payouts = await Liquidaciones.findAll({
+        where: {
+          numero_liquidacion: id, // Sequelize va a hacer un WHERE id IN (...)
+        },
+        include: [
+          {
+            model: Clientes,
+            required: false,
+          },
+          {
+            model: Aseguradoras,
+            required: false,
+          },
+          {
+            model: Subagentes,
+            required: false,
+          },
+        ],
+      });
+
+      const options: CreateOptions = {
+        format: "A4",
+        orientation: "portrait",
+      };
+
+      if (payouts.length == 0) {
+        throw new Error(
+          "Porfavor ingresa un numero de liquidación que tenga liquidaciones"
+        );
+      }
+
+      // Generar el PDF
+      PDF.create(getLiquidationTemplate(payouts), options).toBuffer(
+        (err, buffer) => {
+          if (err) {
+            res.status(500).send("Error al generar el PDF");
+            return;
+          }
+
+          // Enviar el PDF como una respuesta para su descarga
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader(
+            "Content-Disposition",
+            'attachment; filename="liquidacion.pdf"'
+          );
+          return res.status(200).send(buffer);
+        }
+      );
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

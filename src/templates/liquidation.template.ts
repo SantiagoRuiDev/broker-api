@@ -1,104 +1,281 @@
-import { ISettlement, ISettlementExport } from "../interfaces/settlement.interface";
+import { ISettlementMapped } from "../interfaces/settlement.interface";
 
-export function getLiquidationTemplate(settlements: ISettlementExport) {
-  const rows = settlements.clientes.map((c) => {
-    return `<tr>
-    <th style="background-color: #f2f2f2; padding: 10px;">Nombre y Apellido:</th>
-    <td style="border: 1px solid #dddddd; padding: 10px;">${c}</td>
-    </tr>`;
+function formatUSD(value: number): string {
+  return value.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
   });
-
-  return (
-    `
-        <!DOCTYPE html>
-  <html>
-  
-  <head>
-      <meta charset="UTF-8">
-      <title>Negocios pendientes</title>
-      <meta charset="UTF-8">
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
-  </head>
-  
-  <div class="order-template" style="width: 100%; font-family: 'Arial', sans-serif; display: grid; gap: 25px;">
-    <h2 style="color: #333333; text-align: center; margin: 0px auto;">Recuerde gestionar estos pendientes de sus clientes para que pueda cobrar sus comisiones</h2>
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;"><!-- Información del vendedor -->
-    <tbody>
-    <tr>
-    <td style="border: 1px solid #dddddd; padding: 0;">
-    <table style="width: 100%; border-collapse: collapse;">
-    <tbody>
-    ` +
-    rows +
-    `
-    </tbody>
-    </table>
-    </td>
-    </tr>
-    </tbody>
-    </table>
-    </div>
-    
-  </html>
-  
-  <style>
-      .order-template {
-          display: grid;
-          place-content: center;
-          justify-content: center;
-      }
-      * {
-          font-family: "Poppins", sans-serif;
-          font-weight: 400;
-          font-style: normal;
-      }
-  
-      .order-image {
-          max-height: 250px;
-          top: 72px;
-          justify-self: center;
-          margin: 0px auto;
-      }
-  
-      h1 {
-          font-size: 24px;
-          margin-bottom: 20px;
-      }
-  
-      th {
-          font-weight: bold;
-          text-align: left;
-      }
-  
-      td {
-          padding: 8px;
-      }
-  </style>
-      `
-  );
 }
 
-/*
+const calcAdministrative = (subtotal: number, adm_fee: number) => {
+  return (subtotal * adm_fee) / 100;
+}
 
-const options = {
-      format: "A4",
-      orientation: "portrait",
-    };
-
-    // Generar el PDF
-    PDF.create(getOrderTemplate(order), options).toBuffer((err, buffer) => {
-      if (err) {
-        res.status(500).send("Error al generar el PDF");
-        return;
+const calcContribution = (payouts: any[], fee: number, contribution: number) => {
+  let total = 0;
+  for (const payout of payouts) {
+      if (payout.comision && payout.comision > 0) {
+          total += (payout.comision || 0) * (fee / 100);
       }
+  }
+  return total * contribution * 1;
+}
 
-      // Enviar el PDF como una respuesta para su descarga
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader(
-        "Content-Disposition",
-        'attachment; filename="documento.pdf"'
-      );
-      return res.status(200).send(buffer);
-    }); */
+const calcIva = (subtotal: number, iva: number) => {
+  return (subtotal * iva) / 100;
+}
+
+const calcIvaRetention = (subtotal: number, iva: number, iva_retention: number) => {
+  return (calcIva(subtotal, iva) * iva_retention) / 100;
+}
+
+const calcRent = (subtotal: number, rent: number) => {
+  return (subtotal * rent) / 100;
+}
+
+const calcSubtotal = (payouts: any[], fee: number, contribution: number) => {
+  let total = 0;
+  for (const payout of payouts) {
+      total += (payout.comision || 0) * (fee / 100);
+  }
+  return total - calcContribution(payouts, fee, contribution);
+}
+
+const calcTotal = (payouts: any[], fee: number, contribution: number, iva: number, iva_ret: number, rent_ret: number, adm_fee: number, loan: number) => {
+  const subtotal = calcSubtotal(payouts, fee, contribution);
+  return subtotal + calcIva(subtotal, iva) - calcIvaRetention(subtotal, iva, iva_ret) - calcRent(subtotal, rent_ret) - calcAdministrative(subtotal, adm_fee) - loan;
+}
+
+export function getLiquidationTemplate(payouts: any[]) {
+
+  const iva = payouts[0].Subagente.iva || 0;
+  const ret_rent = payouts[0].Subagente.ret_renta || 0;
+  const ret_iva = payouts[0].Subagente.ret_iva || 0;
+  const contributon = 0.005;
+  const fee = payouts[0].Subagente.tarifa_comision || 0;
+  const adm_fee = payouts[0].Subagente.gastos_adm || 0;
+  const loan = payouts[0].prestamo || 0;
+
+  const agent = payouts[0].Subagente;
+
+  const liquidation_date = payouts[0].fecha_liquidacion;
+  const liquidation_number = String(payouts[0].numero_liquidacion).split('/')[0];
+
+  const rows = payouts.map((c: ISettlementMapped) => {
+    return `<tr>
+        <td>${c.Aseguradora?.nombre}</td>
+        <td>${c.factura}</td>
+        <td>${c.poliza}</td>
+        <td>${c.endoso}</td>
+        <td>${c.Cliente?.nombre}</td>
+        <td>${formatUSD(c.valor_prima || 0)}</td>
+        <td>${formatUSD(c.comision || 0)}</td>
+        <td>${formatUSD(((c.comision || 0) * fee) / 100)}</td>
+      </tr>`;
+  });
+
+  const subtotal = calcSubtotal(payouts, fee, contributon);
+
+  return (
+    `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Liquidación N° 2 - Ciaros S.A.</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+      background-color: #f9f9f9;
+    }
+
+    header, footer {
+      font-size: 12px;
+      color: #555;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+
+    .logo img {
+      max-width: 150px;
+      border-radius: 8px;
+    }
+
+    .title {
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+
+    .section-two-columns {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 25px;
+      font-size: 13px;
+    }
+
+    .column {
+      width: 48%;
+      background-color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .column div {
+      margin-bottom: 6px;
+    }
+
+    .datatable {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background-color: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 13px;
+      margin-bottom: 30px;
+    }
+
+    .datatable th, .datatable td {
+      padding: 10px;
+      text-align: center;
+    }
+
+    .datatable thead {
+      background-color: #2c3e50;
+      color: #fff;
+    }
+
+    .datatable tbody tr:nth-child(even) {
+      background-color: #f2f6fa;
+    }
+
+    .datatable tbody tr:hover {
+      background-color: #e3edf7;
+    }
+
+    .wide-summary {
+      background-color: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      font-size: 13px;
+      margin-bottom: 30px;
+    }
+
+    .wide-summary div {
+      margin-bottom: 6px;
+    }
+
+    footer {
+      margin-top: 20px;
+      border-top: 1px solid #ccc;
+      padding-top: 10px;
+      text-align: center;
+    }
+
+    .footer-contact div {
+      margin: 3px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <strong>Ciaros S.A.</strong>
+    </div>
+    <div>
+      <div>Fecha: ${liquidation_date}</div>
+      <div>Liquidación N°: ${liquidation_number}</div>
+    </div>
+    <div class="header-contact">
+      <div>Email: contacto@ciaros.com</div>
+      <div>Tel: +593 7 456 7890</div>
+      <div>Dirección: Calle Ejemplo 456, Guayaquil, Ecuador</div>
+    </div>
+  </header>
+
+  <div class="title">Liquidación</div>
+
+  <div class="logo" style="text-align: center; margin-bottom: 20px;">
+    <img src="https://i.imgur.com/njPPBti.png" alt="Logo">
+  </div>
+
+  <div class="section-two-columns">
+    <div class="column">
+      <div><strong>Nombre del Agente:</strong> ${agent.nombres}</div>
+      <div><strong>Apellido del Agente:</strong> ${agent.apellidos}</div>
+      <div><strong>Ciudad:</strong> ${agent.ciudad}</div>
+      <div><strong>Regimen:</strong> ${agent.tipo_de_regimen}</div>
+      <div><strong>Código:</strong> ${agent.codigo}</div>
+    </div>
+    <div class="column">
+      <div><strong>IVA (%):</strong> ${iva}%</div>
+      <div><strong>Retención IVA (%):</strong> ${ret_iva}%</div>
+      <div><strong>Retención Renta (%):</strong> ${ret_rent}%</div>
+      <div><strong>Comisión (%):</strong> ${fee}%</div>
+    </div>
+  </div>
+
+  <table class="datatable">
+    <thead>
+      <tr>
+        <th>Aseguradora</th>
+        <th>Factura</th>
+        <th>Ramo-Poliza</th>
+        <th>Negocio</th>
+        <th>Cliente</th>
+        <th>Prima Neta</th>
+        <th>Comisión Ciaros</th>
+        <th>Comisión Subagente</th>
+      </tr>
+    </thead>
+    <tbody>
+      `+rows+`
+    </tbody>
+  </table>
+
+  <div class="wide-summary">
+    <div><strong>Contribución Supercias:</strong> ${formatUSD(calcContribution(payouts, fee, contributon))}</div>
+    <div><strong>Subtotal Comisión:</strong> ${formatUSD(subtotal)}</div>
+    <div><strong>IVA:</strong> ${formatUSD(calcIva(subtotal, iva))}</div>
+    <div><strong>Retención IVA:</strong> ${formatUSD(calcIvaRetention(subtotal, iva, ret_iva))}</div>
+    <div><strong>Retención Renta:</strong> ${formatUSD(calcRent(subtotal, ret_rent))}</div>
+    <div><strong>Comisión Bruta:</strong> ${formatUSD(subtotal - calcRent(subtotal, ret_rent))}</div>
+    <div><strong>Gastos Adm:</strong> ${formatUSD(adm_fee)}</div>
+    <div><strong>Préstamos:</strong> ${formatUSD(loan)}</div>
+    <div><strong>Total a Recibir:</strong> <strong style="color: green;">${formatUSD(calcTotal(payouts, fee, contributon, iva, ret_iva, ret_rent, adm_fee, loan))}</strong></div>
+  </div>
+
+  <footer>
+    <div class="footer-contact">
+      <div>Ciaros S.A. - Todos los derechos reservados © 2025</div>
+      <div>www.ciaros.com | contacto@ciaros.com | +593 7 456 7890</div>
+    </div>
+  </footer>
+
+</body>
+</html>
+`
+  );
+}

@@ -60,7 +60,7 @@ export interface ISettlementMapped {
 
 export interface ISettlementExport {
   codigo_agente: string;
-  clientes: string[];
+  liquidaciones: ISettlementMapped[];
 }
 
 export function compareSettlements (arg1: ISettlement, arg2: ISettlement) {

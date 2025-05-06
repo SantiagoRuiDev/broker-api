@@ -6,7 +6,8 @@ import userRoutes from "./routes/user.routes";
 import clientRoutes from "./routes/client.routes";
 import agentRoutes from "./routes/agent.routes";
 import settlementRoutes from "./routes/settlement.routes";
-import { conn, Usuarios } from "./database/connection";
+import configurationRoutes from "./routes/configuration.routes";
+import { Configuracion, conn, Usuarios } from "./database/connection";
 import { hashPassword } from "./utils/password";
 
 const app = express();
@@ -30,10 +31,11 @@ app.use("/api/agents", agentRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/agency", agencyRoutes);
 app.use("/api/clients", clientRoutes);
+app.use("/api/configuration", configurationRoutes);
 
 app.use("/public/media", express.static("public/media"));
 
-conn.sync({ alter: true }).then(async () => {
+conn.sync({ force: true }).then(async () => {
   // Creamos un usuario
 
   const adminExist = await Usuarios.findOne({ where: { correo: "admin@brokers.com" } });
@@ -46,6 +48,18 @@ conn.sync({ alter: true }).then(async () => {
     })
       .then(() => console.log("Usuario administrador ha sido creado por defecto"))
       .catch(() => console.log("Error al crear el usuario"));
+  }
+  const configurationExist = await Usuarios.findOne({ where: {id: "CONFIGURACION"} });
+  if (!configurationExist) {
+    Configuracion.create({
+      id: "CONFIGURACION",
+      moneda: "USD",
+      tipo: "PA",
+      numero_empresa: "0000123456789",
+      numero_secuencial: "12345679",
+    })
+      .then(() => console.log("Configuración creada por defecto"))
+      .catch(() => console.log("Error al crear la configuración"));
   }
 });
 
