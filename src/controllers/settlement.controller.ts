@@ -15,12 +15,12 @@ import {
   LiquidacionTypes,
 } from "../interfaces/settlement.interface";
 import { generateAgentCode } from "../utils/code";
-import PDF, { CreateOptions } from "html-pdf";
 import { getPendingTemplate } from "../templates/pending.template";
 import archiver from "archiver";
 import { Sequelize } from "sequelize";
 import { getLiquidationTemplate } from "../templates/liquidation.template";
 import { getTextTemplate } from "../templates/text.template";
+import { generatePDF } from "../utils/generator";
 
 export class SettlementController {
   constructor() {}
@@ -311,7 +311,9 @@ export class SettlementController {
       res.status(200).json({
         payouts: payouts,
         count:
-          Number(lastLiquidation?.dataValues.numero_liquidacion.split("/")[0]) || 0 + 1,
+          Number(
+            lastLiquidation?.dataValues.numero_liquidacion.split("/")[0]
+          ) || 0 + 1,
       });
     } catch (error) {
       if (error instanceof Error) {
@@ -502,7 +504,7 @@ export class SettlementController {
       }
 
       await Liquidaciones.update({ kanban: status }, { where: { id: ids } });
-      
+
       if (status == KanbanStates.LISTA) {
         const liq = await Liquidaciones.findOne({
           where: { id: ids[0] },
@@ -522,18 +524,27 @@ export class SettlementController {
           ],
         });
 
-        if(!liq){
+        if (!liq) {
           throw new Error("Liquidación no encontrada");
         }
-  
-        const filename = String(liq.dataValues.numero_liquidacion).split('/')[0] + " " + String(liq.dataValues.Subagente.nombres).toUpperCase() + " " + String(liq.dataValues.Subagente.apellidos).toUpperCase()
-        const config = await Configuracion.findOne({where: {id: "CONFIGURACION"}})
+
+        const filename =
+          String(liq.dataValues.numero_liquidacion).split("/")[0] +
+          " " +
+          String(liq.dataValues.Subagente.nombres).toUpperCase() +
+          " " +
+          String(liq.dataValues.Subagente.apellidos).toUpperCase();
+        const config = await Configuracion.findOne({
+          where: { id: "CONFIGURACION" },
+        });
         res.setHeader(
           "Content-Disposition",
-          'attachment; filename="'+filename+'"'
+          'attachment; filename="' + filename + '"'
         );
         res.setHeader("Content-Type", "text/plain");
-        res.status(200).send(getTextTemplate(liq?.dataValues, config?.dataValues));
+        res
+          .status(200)
+          .send(getTextTemplate(liq?.dataValues, config?.dataValues));
         return; // <-- ¡Esto es importante!
       }
 
@@ -642,34 +653,18 @@ export class SettlementController {
       let remaining = filteredRows.length;
 
       for (const row of filteredRows) {
-        const options: CreateOptions = {
-          format: "A4",
-          orientation: "portrait",
-        };
-
         // Generar el PDF
-        PDF.create(getPendingTemplate(row.liquidaciones), options).toBuffer(
-          (err, buffer) => {
-            if (err) {
-              console.error(
-                `Error generando PDF para ${row.codigo_agente}`,
-                err
-              );
-              return;
-            }
+        const buffer = await generatePDF(getPendingTemplate(row.liquidaciones));
+        // Enviar el PDF como una respuesta para su descarga
 
-            // Agregar el PDF al archivo zip
-            archive.append(buffer, {
-              name: `PENDIENTES_${row.codigo_agente}.pdf`,
-            });
-
-            remaining--;
-            if (remaining === 0) {
-              // Finalizar el zip cuando todos estén agregados
-              archive.finalize();
-            }
-          }
-        );
+        archive.append(buffer, {
+          name: `PENDIENTES_${row.codigo_agente}.pdf`,
+        });
+        remaining--;
+        if (remaining === 0) {
+          // Finalizar el zip cuando todos estén agregados
+          archive.finalize();
+        }
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -679,8 +674,8 @@ export class SettlementController {
   }
   async getLiquidationTXT(req: Request, res: Response): Promise<void> {
     try {
-      let {id} = req.query
-      
+      let { id } = req.query;
+
       // Si viene un solo ID, convertirlo en array
       if (!id) {
         res.status(400).json({ message: "No se proporcionaron IDs." });
@@ -709,18 +704,27 @@ export class SettlementController {
         ],
       });
 
-      if(!liq){
+      if (!liq) {
         throw new Error("Liquidación no encontrada");
       }
 
-      const config = await Configuracion.findOne({where: {id: "CONFIGURACION"}})
-      const filename = String(liq.dataValues.numero_liquidacion).split('/')[0] + " " + String(liq.dataValues.Subagente.nombres).toUpperCase() + " " + String(liq.dataValues.Subagente.apellidos).toUpperCase()
+      const config = await Configuracion.findOne({
+        where: { id: "CONFIGURACION" },
+      });
+      const filename =
+        String(liq.dataValues.numero_liquidacion).split("/")[0] +
+        " " +
+        String(liq.dataValues.Subagente.nombres).toUpperCase() +
+        " " +
+        String(liq.dataValues.Subagente.apellidos).toUpperCase();
       res.setHeader(
         "Content-Disposition",
-        'attachment; filename="'+filename+'"'
+        'attachment; filename="' + filename + '"'
       );
       res.setHeader("Content-Type", "text/plain");
-      res.status(200).send(getTextTemplate(liq?.dataValues, config?.dataValues));
+      res
+        .status(200)
+        .send(getTextTemplate(liq?.dataValues, config?.dataValues));
       return; // <-- ¡Esto es importante!
     } catch (error) {
       if (error instanceof Error) {
@@ -728,7 +732,6 @@ export class SettlementController {
       }
     }
   }
-
 
   async getLiquidationPDF(req: Request, res: Response): Promise<void> {
     try {
@@ -761,11 +764,6 @@ export class SettlementController {
         ],
       });
 
-      const options: CreateOptions = {
-        format: "A4",
-        orientation: "portrait",
-      };
-
       if (payouts.length == 0) {
         throw new Error(
           "Porfavor ingresa un numero de liquidación que tenga liquidaciones"
@@ -773,23 +771,18 @@ export class SettlementController {
       }
 
       // Generar el PDF
-      const filename = "LIQUIDACION " + String(payouts[0].dataValues.numero_liquidacion).split('/')[0]
-      PDF.create(getLiquidationTemplate(payouts), options).toBuffer(
-        (err, buffer) => {
-          if (err) {
-            res.status(500).send("Error al generar el PDF");
-            return;
-          }
-
-          // Enviar el PDF como una respuesta para su descarga
-          res.setHeader("Content-Type", "application/pdf");
-          res.setHeader(
-            "Content-Disposition",
-            'attachment; filename="'+filename+'"'
-          );
-          return res.status(200).send(buffer);
-        }
+      const filename =
+        "LIQUIDACION " +
+        String(payouts[0].dataValues.numero_liquidacion).split("/")[0];
+      const buffer = await generatePDF(getLiquidationTemplate(payouts));
+      // Enviar el PDF como una respuesta para su descarga
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="' + filename + '"'
       );
+      res.status(200).send(buffer);
+      return;
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

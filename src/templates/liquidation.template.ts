@@ -82,6 +82,7 @@ export function getLiquidationTemplate(payouts: any[]) {
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=794px, height=1123px">
   <title>Liquidación N° 2 - Ciaros S.A.</title>
   <style>
     @page {
@@ -125,19 +126,20 @@ export function getLiquidationTemplate(payouts: any[]) {
     }
 
     .section-two-columns {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 25px;
-      font-size: 13px;
-    }
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 25px;
+  font-size: 13px;
+  gap: 10px;
+}
 
-    .column {
-      width: 48%;
-      background-color: #fff;
-      padding: 12px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-    }
+.column {
+  flex: 1;
+  background-color: #fff;
+  padding: 6px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
 
     .column div {
       margin-bottom: 6px;
