@@ -70,6 +70,7 @@ conn.sync({ force: true }).then(async () => {
       moneda: "USD",
       tipo: "PA",
       numero_empresa: "2006002291",
+      forma_de_pago: "CTA",
       numero_secuencial: "12345679",
     })
       .then(() => console.log("Configuración creada por defecto"))

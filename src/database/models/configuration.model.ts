@@ -10,6 +10,10 @@ export const model = (sequelize: any, DataTypes: any) => {
           type: DataTypes.STRING,
           allowNull: false,
         },
+        forma_de_pago: {
+          type: DataTypes.STRING,
+          allowNull: false,
+        },
         numero_empresa: {
           type: DataTypes.STRING,
           allowNull: false,

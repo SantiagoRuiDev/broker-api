@@ -4,4 +4,5 @@ export interface IConfiguration {
   numero_secuencial: string;
   moneda: string;
   tipo: string;
+  forma_de_pago: string;
 }

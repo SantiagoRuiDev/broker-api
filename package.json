@@ -5,6 +5,7 @@
   "scripts": {
     "vercel-build": "tsc",
     "start": "tsc && node dist/index.js",
+    "render-build": "npx puppeteer browsers install chrome && npm install",
     "dev": "nodemon --ext ts --exec ts-node src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
