@@ -4,10 +4,6 @@ npm-debug.log
 yarn.lock
 pnpm-lock.yaml
 
-# Archivos de TypeScript sin compilar
-src/**/*.ts
-*.ts
-
 # Archivos de sistema
 .DS_Store
 Thumbs.db
@@ -30,3 +26,7 @@ Thumbs.db
 # Cachés
 .cache
 dist/
+
+# Archivos de TypeScript sin compilar (se pueden incluir si no es necesario ignorarlos)
+# src/**/*.ts
+# *.ts
