@@ -9,10 +9,10 @@ pnpm-lock.yaml
 Thumbs.db
 
 # Configs innecesarios
-.env.local
-.env.development
-.env.test
-.env.*
+#.env.local
+#.env.development
+#.env.test
+#.env.*
 
 # Git
 .git
