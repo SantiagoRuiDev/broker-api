@@ -1,54 +1,15 @@
-FROM node:18-slim
+FROM ghcr.io/puppeteer/puppeteer:19.7.2
 
-# Evita preguntas durante instalación
-ENV DEBIAN_FRONTEND=noninteractive
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
-# Instala dependencias necesarias para Puppeteer y Chrome headless
-RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
-    ca-certificates \
-    fonts-liberation \
-    libappindicator3-1 \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libcups2 \
-    libdbus-1-3 \
-    libgdk-pixbuf2.0-0 \
-    libnspr4 \
-    libnss3 \
-    libx11-xcb1 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    xdg-utils \
-    --no-install-recommends && \
-    rm -rf /var/lib/apt/lists/*
+WORKDIR /usr/src/app
 
-# Descarga y descomprime Chrome estable (sin .deb)
-RUN CHROME_VERSION="124.0.6367.60" && \
-    mkdir -p /opt/chrome && \
-    curl -Lo chrome-linux.zip "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/${CHROME_VERSION}/linux64/chrome-linux64.zip" && \
-    unzip chrome-linux64.zip && \
-    mv chrome-linux64/* /opt/chrome/ && \
-    rm -rf chrome-linux64.zip chrome-linux64
-
-# Establece la ruta del binario de Chrome
-ENV PUPPETEER_EXECUTABLE_PATH=/opt/chrome/chrome
-
-# Crea carpeta para app
-WORKDIR /app
-
-# Copia package.json y package-lock.json e instala dependencias
 COPY package*.json ./
-RUN npm install
-
-# Copia el resto del código fuente
+RUN npm ci
 COPY . .
+# Compila el proyecto TS a JS (se generará en dist)
+RUN npm run build
 
-# Expone el puerto (ajustá si usás otro)
-EXPOSE 3000
-
-# Comando para iniciar tu app
-CMD ["npm", "run", "start"]
+# Comando para ejecutar el archivo compilado en dist/index.js
+CMD ["node", "dist/index.js"]
