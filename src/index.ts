@@ -69,7 +69,7 @@ conn.sync({ force: true }).then(async () => {
       id: "CONFIGURACION",
       moneda: "USD",
       tipo: "PA",
-      numero_empresa: "0000123456789",
+      numero_empresa: "2006002291",
       numero_secuencial: "12345679",
     })
       .then(() => console.log("Configuración creada por defecto"))

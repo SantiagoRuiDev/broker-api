@@ -4,33 +4,41 @@ import { ISettlementMapped } from "../interfaces/settlement.interface";
 export const getTextTemplate = (payout: ISettlementMapped, config: IConfiguration) => {
   const agent = payout.Subagente;
   if (agent) {
-    return (
+    const ciudad_beneficiario = agent.ciudad_beneficiario ? agent.ciudad_beneficiario.toUpperCase() : 0;
+    const codigo_de_beneficiario = agent.codigo_de_beneficiario ? agent.codigo_de_beneficiario : 0;
+    const forma_de_pago = agent.forma_de_pago ? agent.forma_de_pago.toUpperCase() : 0;
+    const codigo_de_banco = agent.codigo_de_banco ? agent.codigo_de_banco : 0;
+    const tipo_de_cuenta = agent.tipo_de_cuenta ? agent.tipo_de_cuenta.toUpperCase() : 0;
+    const numero_cuenta = agent.numero_cuenta ? agent.numero_cuenta : 0;
+    const tipo_de_documento = agent.tipo_de_documento ? agent.tipo_de_documento.toUpperCase().charAt(0) : 0;
+    const cedula = agent.cedula ? agent.cedula : 0;
+     return (
       config.tipo + "	" +
       config.numero_empresa +
       "	" +
       config.numero_secuencial +
       "		" +
-      agent.codigo_de_beneficiario +
+      codigo_de_beneficiario +
       "	" +
       config.moneda.toUpperCase() +
       "	" +
-      payout.total_liquidado +
+      Math.round((payout.total_liquidado || 0) * 10_000_000_000) +
       "	" +
-      agent.forma_de_pago?.toUpperCase() +
+      forma_de_pago +
       "	" +
-      agent.codigo_de_banco +
+      codigo_de_banco +
       "	" +
-      agent.tipo_de_cuenta?.toUpperCase() +
+      tipo_de_cuenta +
       "	" +
-      agent.numero_cuenta +
+      numero_cuenta +
       "	" +
-      agent.tipo_de_documento?.toUpperCase() +
+      tipo_de_documento +
       "	" +
-      agent.cedula +
+      cedula +
       "	" +
       agent.nombres.toUpperCase() + " " + agent.apellidos.toUpperCase() +
       "		" +
-      agent.ciudad_beneficiario?.toUpperCase() +
+      ciudad_beneficiario +
       "			" +
       "PAGO LIQUIDACION " +
       payout.numero_liquidacion?.split("/")[0]

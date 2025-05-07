@@ -11,12 +11,12 @@ export const model = (sequelize: any, DataTypes: any) => {
           allowNull: false,
         },
         numero_empresa: {
-          type: DataTypes.FLOAT,
+          type: DataTypes.STRING,
           allowNull: false,
           unique: true,
         },
         numero_secuencial: {
-          type: DataTypes.FLOAT,
+          type: DataTypes.STRING,
           allowNull: true,
         },
         moneda: {

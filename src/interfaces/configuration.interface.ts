@@ -1,7 +1,7 @@
 export interface IConfiguration {
   id: string;
-  numero_empresa: number;
-  numero_secuencial: number;
+  numero_empresa: string;
+  numero_secuencial: string;
   moneda: string;
   tipo: string;
 }
