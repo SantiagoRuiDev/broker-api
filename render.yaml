@@ -1,11 +1,15 @@
 services:
   - type: web
-    name: broker-api
+    name: brokers-api
     env: docker
-    region: oregon
     plan: free
+    branch: main
+    repo: https://github.com/SantiagoRuiDev/broker-api
     dockerfilePath: ./Dockerfile
-    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DEVELOPMENT_PORT
+        value: 3000
+      - key: PRODUCTION
+        value: "true"
