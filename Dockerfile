@@ -12,4 +12,4 @@ COPY . .
 RUN npm run build
 
 # Comando para ejecutar el archivo compilado en dist/index.js
-CMD ["node", "dist/index.js"]
+CMD ["npm", "start"]
