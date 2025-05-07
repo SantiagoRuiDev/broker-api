@@ -1,6 +1,11 @@
 import { IConfiguration } from "../interfaces/configuration.interface";
 import { ISettlementMapped } from "../interfaces/settlement.interface";
 
+function to13DigitString(value: number): string {
+  const cents = Math.round(value * 100); // convierte a centavos
+  return cents.toString().padStart(13, '0'); // rellena con ceros a la izquierda
+}
+
 export const getTextTemplate = (payout: ISettlementMapped, config: IConfiguration) => {
   const agent = payout.Subagente;
   if (agent) {
@@ -22,7 +27,7 @@ export const getTextTemplate = (payout: ISettlementMapped, config: IConfiguratio
       "	" +
       config.moneda.toUpperCase() +
       "	" +
-      Math.round((payout.total_liquidado || 0) * 10_000_000_000) +
+      to13DigitString(payout.total_liquidado || 0) +
       "	" +
       forma_de_pago +
       "	" +
