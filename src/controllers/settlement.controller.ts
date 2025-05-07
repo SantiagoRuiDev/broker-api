@@ -522,10 +522,15 @@ export class SettlementController {
           ],
         });
 
+        if(!liq){
+          throw new Error("Liquidación no encontrada");
+        }
+  
+        const filename = String(liq.dataValues.numero_liquidacion).split('/')[0] + " " + String(liq.dataValues.Subagente.nombres).toUpperCase() + " " + String(liq.dataValues.Subagente.apellidos).toUpperCase()
         const config = await Configuracion.findOne({where: {id: "CONFIGURACION"}})
         res.setHeader(
           "Content-Disposition",
-          'attachment; filename="archivo.txt"'
+          'attachment; filename="'+filename+'"'
         );
         res.setHeader("Content-Type", "text/plain");
         res.status(200).send(getTextTemplate(liq?.dataValues, config?.dataValues));
@@ -630,7 +635,7 @@ export class SettlementController {
       res.setHeader("Content-Type", "application/zip");
       res.setHeader(
         "Content-Disposition",
-        'attachment; filename="liquidaciones.zip"'
+        'attachment; filename="RECORDATORIOS_PENDIENTES.zip"'
       );
       archive.pipe(res);
 
@@ -655,7 +660,7 @@ export class SettlementController {
 
             // Agregar el PDF al archivo zip
             archive.append(buffer, {
-              name: `negocios_pendientes_${row.codigo_agente}.pdf`,
+              name: `PENDIENTES_${row.codigo_agente}.pdf`,
             });
 
             remaining--;
@@ -709,9 +714,10 @@ export class SettlementController {
       }
 
       const config = await Configuracion.findOne({where: {id: "CONFIGURACION"}})
+      const filename = String(liq.dataValues.numero_liquidacion).split('/')[0] + " " + String(liq.dataValues.Subagente.nombres).toUpperCase() + " " + String(liq.dataValues.Subagente.apellidos).toUpperCase()
       res.setHeader(
         "Content-Disposition",
-        'attachment; filename="pago_liquidacion.txt"'
+        'attachment; filename="'+filename+'"'
       );
       res.setHeader("Content-Type", "text/plain");
       res.status(200).send(getTextTemplate(liq?.dataValues, config?.dataValues));
@@ -767,6 +773,7 @@ export class SettlementController {
       }
 
       // Generar el PDF
+      const filename = "LIQUIDACION " + String(payouts[0].dataValues.numero_liquidacion).split('/')[0]
       PDF.create(getLiquidationTemplate(payouts), options).toBuffer(
         (err, buffer) => {
           if (err) {
@@ -778,7 +785,7 @@ export class SettlementController {
           res.setHeader("Content-Type", "application/pdf");
           res.setHeader(
             "Content-Disposition",
-            'attachment; filename="liquidacion.pdf"'
+            'attachment; filename="'+filename+'"'
           );
           return res.status(200).send(buffer);
         }

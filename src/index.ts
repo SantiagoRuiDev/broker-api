@@ -12,17 +12,25 @@ import { hashPassword } from "./utils/password";
 
 const app = express();
 
-
 app.use(
   "*",
   cors({
     origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-multiuser-token"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "x-multiuser-token",
+    ],
   })
 );
 
-app.use(cors());
+app.use(
+  cors({
+    exposedHeaders: ["Content-Disposition"],
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -38,7 +46,9 @@ app.use("/public/media", express.static("public/media"));
 conn.sync({ force: true }).then(async () => {
   // Creamos un usuario
 
-  const adminExist = await Usuarios.findOne({ where: { correo: "admin@brokers.com" } });
+  const adminExist = await Usuarios.findOne({
+    where: { correo: "admin@brokers.com" },
+  });
   if (!adminExist) {
     Usuarios.create({
       nombre: "Administrador",
@@ -46,10 +56,14 @@ conn.sync({ force: true }).then(async () => {
       correo: "admin@brokers.com",
       password: await hashPassword("123qwe"),
     })
-      .then(() => console.log("Usuario administrador ha sido creado por defecto"))
+      .then(() =>
+        console.log("Usuario administrador ha sido creado por defecto")
+      )
       .catch(() => console.log("Error al crear el usuario"));
   }
-  const configurationExist = await Usuarios.findOne({ where: {id: "CONFIGURACION"} });
+  const configurationExist = await Usuarios.findOne({
+    where: { id: "CONFIGURACION" },
+  });
   if (!configurationExist) {
     Configuracion.create({
       id: "CONFIGURACION",
@@ -62,7 +76,6 @@ conn.sync({ force: true }).then(async () => {
       .catch(() => console.log("Error al crear la configuración"));
   }
 });
-
 
 app.listen(config.PORT, () => {
   console.log(`SERVER RUNNING ON PORT: ${config.PORT}`);
