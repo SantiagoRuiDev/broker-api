@@ -1,9 +1,9 @@
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
 
 export async function generatePDF(html: string): Promise<Buffer> {
   const browser = await puppeteer.launch({
     headless: true,
-    executablePath: '/opt/render/.cache/puppeteer/chrome/linux-136.0.7103.49/chrome-linux64/chrome',
+    executablePath: '/usr/bin/google-chrome-stable',
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 

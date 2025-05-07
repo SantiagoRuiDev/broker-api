@@ -1,0 +1,32 @@
+# Dependencias locales
+node_modules
+npm-debug.log
+yarn.lock
+pnpm-lock.yaml
+
+# Archivos de TypeScript sin compilar
+src/**/*.ts
+*.ts
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Configs innecesarios
+.env.local
+.env.development
+.env.test
+.env.*
+
+# Git
+.git
+.gitignore
+
+# Archivos de desarrollo
+.vscode
+.idea
+*.log
+
+# Cachés
+.cache
+dist/
