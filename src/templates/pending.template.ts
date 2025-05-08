@@ -34,6 +34,10 @@ export function getPendingTemplate(settlements: ISettlementMapped[]) {
       size: A4;
       margin: 20mm;
     }
+      html, body {
+  height: 100%;
+}
+
 
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -44,18 +48,33 @@ export function getPendingTemplate(settlements: ISettlementMapped[]) {
     }
 
     header, footer {
-      font-size: 12px;
-      color: #555;
-    }
+    font-size: 12px;
+    color: #555;
+  }
 
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #ccc;
-      padding-bottom: 10px;
-      margin-bottom: 20px;
-    }
+  table.header-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+
+  table.header-table td {
+    padding: 10px;
+    vertical-align: middle;
+  }
+
+  table.header-table td:nth-child(1) {
+    text-align: left;
+    font-weight: bold;
+  }
+
+  table.header-table td:nth-child(2) {
+    text-align: left;
+  }
+    
+  table.header-table tr {
+    border-bottom: 1px solid #ccc;
+  }
 
     .logo img {
       max-width: 150px;
@@ -147,14 +166,19 @@ export function getPendingTemplate(settlements: ISettlementMapped[]) {
 <body>
 
   <header>
-    <div>
-      <strong>Ciaros S.A.</strong>
-    </div>
-    <div class="header-contact">
-      <div>Email: contacto@ciaros.com</div>
-      <div>Tel: +593 7 456 7890</div>
-      <div>Dirección: Calle Ejemplo 456, Guayaquil, Ecuador</div>
-    </div>
+    
+<table class="header-table">
+  <tbody>
+    <tr>
+      <td><strong>Ciaros S.A.</strong></td>
+      <td class="header-contact">
+        <div>Email: contacto@ciaros.com</div>
+        <div>Tel: +593 7 456 7890</div>
+        <div>Dirección: Calle Ejemplo 456, Guayaquil, Ecuador</div>
+      </td>
+    </tr>
+  </tbody>
+</table>
   </header>
 
   <div class="title">Recuerde gestionar estos pendientes de sus clientes para que pueda cobrar 

@@ -83,12 +83,19 @@ export function getLiquidationTemplate(payouts: any[]) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=794px, height=1123px">
-  <title>Liquidación N° 2 - Ciaros S.A.</title>
+  <title>Liquidación - Ciaros S.A.</title>
   <style>
+    * {
+  box-sizing: border-box;
+}
+    
     @page {
       size: A4;
       margin: 20mm;
     }
+      html, body {
+  height: 100%;
+}
 
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -99,18 +106,37 @@ export function getLiquidationTemplate(payouts: any[]) {
     }
 
     header, footer {
-      font-size: 12px;
-      color: #555;
-    }
+    font-size: 12px;
+    color: #555;
+  }
 
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #ccc;
-      padding-bottom: 10px;
-      margin-bottom: 20px;
-    }
+  table.header-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+
+  table.header-table td {
+    padding: 10px;
+    vertical-align: middle;
+  }
+
+  table.header-table td:nth-child(1) {
+    text-align: left;
+    font-weight: bold;
+  }
+
+  table.header-table td:nth-child(2) {
+    text-align: left;
+  }
+
+  table.header-table td:nth-child(3) {
+    text-align: left;
+  }
+
+  table.header-table tr {
+    border-bottom: 1px solid #ccc;
+  }
 
     .logo img {
       max-width: 150px;
@@ -125,25 +151,26 @@ export function getLiquidationTemplate(payouts: any[]) {
       color: #2c3e50;
     }
 
-    .section-two-columns {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 25px;
-  font-size: 13px;
-  gap: 10px;
-}
+  .custom-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 10px; /* separación entre columnas */
+    font-size: 13px;
+    margin-bottom: 25px;
+  }
 
-.column {
-  flex: 1;
-  background-color: #fff;
-  padding: 6px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-}
+  .column-cell {
+    background-color: #fff;
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    vertical-align: top;
+    width: 50%;
+  }
 
-    .column div {
-      margin-bottom: 6px;
-    }
+  .column-cell div {
+    margin-bottom: 6px;
+  }
 
     .datatable {
       width: 100%;
@@ -189,7 +216,6 @@ export function getLiquidationTemplate(payouts: any[]) {
     }
 
     footer {
-      margin-top: 20px;
       border-top: 1px solid #ccc;
       padding-top: 10px;
       text-align: center;
@@ -198,23 +224,29 @@ export function getLiquidationTemplate(payouts: any[]) {
     .footer-contact div {
       margin: 3px 0;
     }
+   
   </style>
 </head>
 <body>
 
   <header>
-    <div>
-      <strong>Ciaros S.A.</strong>
-    </div>
-    <div>
-      <div>Fecha: ${liquidation_date}</div>
-      <div>Liquidación N°: ${liquidation_number}</div>
-    </div>
-    <div class="header-contact">
-      <div>Email: contacto@ciaros.com</div>
-      <div>Tel: +593 7 456 7890</div>
-      <div>Dirección: Calle Ejemplo 456, Guayaquil, Ecuador</div>
-    </div>
+    
+<table class="header-table">
+  <tbody>
+    <tr>
+      <td><strong>Ciaros S.A.</strong></td>
+      <td>
+        <div>Fecha: ${liquidation_date}</div>
+        <div>Liquidación N°: ${liquidation_number}</div>
+      </td>
+      <td class="header-contact">
+        <div>Email: contacto@ciaros.com</div>
+        <div>Tel: +593 7 456 7890</div>
+        <div>Dirección: Calle Ejemplo 456, Guayaquil, Ecuador</div>
+      </td>
+    </tr>
+  </tbody>
+</table>
   </header>
 
   <div class="title">Liquidación</div>
@@ -223,21 +255,26 @@ export function getLiquidationTemplate(payouts: any[]) {
     <img src="https://i.imgur.com/njPPBti.png" alt="Logo">
   </div>
 
-  <div class="section-two-columns">
-    <div class="column">
-      <div><strong>Nombre del Agente:</strong> ${agent.nombres}</div>
-      <div><strong>Apellido del Agente:</strong> ${agent.apellidos}</div>
-      <div><strong>Ciudad:</strong> ${agent.ciudad}</div>
-      <div><strong>Regimen:</strong> ${agent.tipo_de_regimen}</div>
-      <div><strong>Código:</strong> ${agent.codigo}</div>
-    </div>
-    <div class="column">
-      <div><strong>IVA (%):</strong> ${iva}%</div>
-      <div><strong>Retención IVA (%):</strong> ${ret_iva}%</div>
-      <div><strong>Retención Renta (%):</strong> ${ret_rent}%</div>
-      <div><strong>Comisión (%):</strong> ${fee}%</div>
-    </div>
-  </div>
+  
+<table class="custom-table">
+  <tbody>
+    <tr>
+      <td class="column-cell">
+        <div><strong>Nombre del Agente:</strong> ${agent.nombres}</div>
+        <div><strong>Apellido del Agente:</strong> ${agent.apellidos}</div>
+        <div><strong>Ciudad:</strong> ${agent.ciudad}</div>
+        <div><strong>Regimen:</strong> ${agent.tipo_de_regimen}</div>
+        <div><strong>Código:</strong> ${agent.codigo}</div>
+      </td>
+      <td class="column-cell">
+        <div><strong>IVA (%):</strong> ${iva}%</div>
+        <div><strong>Retención IVA (%):</strong> ${ret_iva}%</div>
+        <div><strong>Retención Renta (%):</strong> ${ret_rent}%</div>
+        <div><strong>Comisión (%):</strong> ${fee}%</div>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
   <table class="datatable">
     <thead>

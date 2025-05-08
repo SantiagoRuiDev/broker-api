@@ -21,6 +21,8 @@ import { Sequelize } from "sequelize";
 import { getLiquidationTemplate } from "../templates/liquidation.template";
 import { getTextTemplate } from "../templates/text.template";
 import { generatePDF } from "../utils/generator";
+import { CreateOptions } from "html-pdf";
+import PDF from 'html-pdf';
 
 export class SettlementController {
   constructor() {}
@@ -653,18 +655,34 @@ export class SettlementController {
       let remaining = filteredRows.length;
 
       for (const row of filteredRows) {
-        // Generar el PDF
-        const buffer = await generatePDF(getPendingTemplate(row.liquidaciones));
-        // Enviar el PDF como una respuesta para su descarga
+        const options: CreateOptions = {
+          format: "A4",
+          orientation: "portrait",
+        };
 
-        archive.append(buffer, {
-          name: `PENDIENTES_${row.codigo_agente}.pdf`,
-        });
-        remaining--;
-        if (remaining === 0) {
-          // Finalizar el zip cuando todos estén agregados
-          archive.finalize();
-        }
+        // Generar el PDF
+        PDF.create(getPendingTemplate(row.liquidaciones), options).toBuffer(
+          (err, buffer) => {
+            if (err) {
+              console.error(
+                `Error generando PDF para ${row.codigo_agente}`,
+                err
+              );
+              return;
+            }
+
+            // Agregar el PDF al archivo zip
+            archive.append(buffer, {
+              name: `PENDIENTES_${row.codigo_agente}.pdf`,
+            });
+
+            remaining--;
+            if (remaining === 0) {
+              // Finalizar el zip cuando todos estén agregados
+              archive.finalize();
+            }
+          }
+        );
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -769,11 +787,30 @@ export class SettlementController {
           "Porfavor ingresa un numero de liquidación que tenga liquidaciones"
         );
       }
-
+      const options: CreateOptions = {
+        format: "A4",
+        orientation: "portrait",
+      };
       // Generar el PDF
       const filename =
-        "LIQUIDACION " +
-        String(payouts[0].dataValues.numero_liquidacion).split("/")[0];
+      "LIQUIDACION " +
+      String(payouts[0].dataValues.numero_liquidacion).split("/")[0];
+      PDF.create(getLiquidationTemplate(payouts), options).toBuffer(
+        (err, buffer) => {
+          if (err) {
+            res.status(500).send("Error al generar el PDF");
+            return;
+          }
+
+          // Enviar el PDF como una respuesta para su descarga
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader(
+            "Content-Disposition",
+            'attachment; filename="'+filename+'.pdf"'
+          );
+          return res.status(200).send(buffer);
+        }
+      );/*
       const buffer = await generatePDF(getLiquidationTemplate(payouts));
       // Enviar el PDF como una respuesta para su descarga
       res.setHeader("Content-Type", "application/pdf");
@@ -782,7 +819,7 @@ export class SettlementController {
         'attachment; filename="' + filename + '"'
       );
       res.status(200).send(buffer);
-      return;
+      return;*/
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
