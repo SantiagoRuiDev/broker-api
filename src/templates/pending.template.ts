@@ -202,9 +202,7 @@ sus comisiones</div>
       </tr>
     </thead>
     <tbody>
-      ` +
-    rows +
-    `
+      ${rows.join("")}
     </tbody>
   </table>
 

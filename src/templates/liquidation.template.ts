@@ -10,45 +10,77 @@ function formatUSD(value: number): string {
 
 const calcAdministrative = (subtotal: number, adm_fee: number) => {
   return (subtotal * adm_fee) / 100;
-}
+};
 
-const calcContribution = (payouts: any[], fee: number, contribution: number) => {
+const calcContribution = (
+  payouts: any[],
+  fee: number,
+  contribution: number
+) => {
   let total = 0;
   for (const payout of payouts) {
-      if (payout.comision && payout.comision > 0) {
-          total += (payout.comision || 0) * (fee / 100);
-      }
+    if (payout.comision && payout.comision > 0) {
+      total += (payout.comision || 0) * (fee / 100);
+    }
   }
   return total * contribution * 1;
-}
+};
 
 const calcIva = (subtotal: number, iva: number) => {
   return (subtotal * iva) / 100;
-}
+};
 
-const calcIvaRetention = (subtotal: number, iva: number, iva_retention: number) => {
+const calcIvaRetention = (
+  subtotal: number,
+  iva: number,
+  iva_retention: number
+) => {
   return (calcIva(subtotal, iva) * iva_retention) / 100;
-}
+};
 
 const calcRent = (subtotal: number, rent: number) => {
   return (subtotal * rent) / 100;
-}
+};
 
 const calcSubtotal = (payouts: any[], fee: number, contribution: number) => {
   let total = 0;
   for (const payout of payouts) {
-      total += (payout.comision || 0) * (fee / 100);
+    total += (payout.comision || 0) * (fee / 100);
   }
   return total - calcContribution(payouts, fee, contribution);
-}
+};
 
-const calcTotal = (payouts: any[], fee: number, contribution: number, iva: number, iva_ret: number, rent_ret: number, adm_fee: number, loan: number) => {
+const calcTotal = (
+  payouts: any[],
+  fee: number,
+  contribution: number,
+  iva: number,
+  iva_ret: number,
+  rent_ret: number,
+  adm_fee: number,
+  loan: number
+) => {
   const subtotal = calcSubtotal(payouts, fee, contribution);
-  return subtotal + calcIva(subtotal, iva) - calcIvaRetention(subtotal, iva, iva_ret) - calcRent(subtotal, rent_ret) - calcAdministrative(subtotal, adm_fee) - loan;
+  return (
+    subtotal +
+    calcIva(subtotal, iva) -
+    calcIvaRetention(subtotal, iva, iva_ret) -
+    calcRent(subtotal, rent_ret) -
+    calcAdministrative(subtotal, adm_fee) -
+    loan
+  );
+};
+
+function escapeHTML(str = "") {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 export function getLiquidationTemplate(payouts: any[]) {
-
   const iva = payouts[0].Subagente.iva || 0;
   const ret_rent = payouts[0].Subagente.ret_renta || 0;
   const ret_iva = payouts[0].Subagente.ret_iva || 0;
@@ -60,11 +92,13 @@ export function getLiquidationTemplate(payouts: any[]) {
   const agent = payouts[0].Subagente;
 
   const liquidation_date = payouts[0].fecha_liquidacion;
-  const liquidation_number = String(payouts[0].numero_liquidacion).split('/')[0];
+  const liquidation_number = String(payouts[0].numero_liquidacion).split(
+    "/"
+  )[0];
 
   const rows = payouts.map((c: ISettlementMapped) => {
     return `<tr>
-        <td>${c.Aseguradora?.nombre}</td>
+        <td>${escapeHTML(c.Aseguradora?.nombre)}</td>
         <td>${c.factura}</td>
         <td>${c.poliza}</td>
         <td>${c.endoso}</td>
@@ -77,12 +111,10 @@ export function getLiquidationTemplate(payouts: any[]) {
 
   const subtotal = calcSubtotal(payouts, fee, contributon);
 
-  return (
-    `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=794px, height=1123px">
   <title>Liquidación - Ciaros S.A.</title>
   <style>
     * {
@@ -290,20 +322,39 @@ export function getLiquidationTemplate(payouts: any[]) {
       </tr>
     </thead>
     <tbody>
-      `+rows+`
+  ${rows.join("")}
     </tbody>
   </table>
 
   <div class="wide-summary">
-    <div><strong>Contribución Supercias:</strong> ${formatUSD(calcContribution(payouts, fee, contributon))}</div>
+    <div><strong>Contribución Supercias:</strong> ${formatUSD(
+      calcContribution(payouts, fee, contributon)
+    )}</div>
     <div><strong>Subtotal Comisión:</strong> ${formatUSD(subtotal)}</div>
     <div><strong>IVA:</strong> ${formatUSD(calcIva(subtotal, iva))}</div>
-    <div><strong>Retención IVA:</strong> ${formatUSD(calcIvaRetention(subtotal, iva, ret_iva))}</div>
-    <div><strong>Retención Renta:</strong> ${formatUSD(calcRent(subtotal, ret_rent))}</div>
-    <div><strong>Comisión Bruta:</strong> ${formatUSD(subtotal - calcRent(subtotal, ret_rent))}</div>
+    <div><strong>Retención IVA:</strong> ${formatUSD(
+      calcIvaRetention(subtotal, iva, ret_iva)
+    )}</div>
+    <div><strong>Retención Renta:</strong> ${formatUSD(
+      calcRent(subtotal, ret_rent)
+    )}</div>
+    <div><strong>Comisión Bruta:</strong> ${formatUSD(
+      subtotal - calcRent(subtotal, ret_rent)
+    )}</div>
     <div><strong>Gastos Adm:</strong> ${formatUSD(adm_fee)}</div>
     <div><strong>Préstamos:</strong> ${formatUSD(loan)}</div>
-    <div><strong>Total a Recibir:</strong> <strong style="color: green;">${formatUSD(calcTotal(payouts, fee, contributon, iva, ret_iva, ret_rent, adm_fee, loan))}</strong></div>
+    <div><strong>Total a Recibir:</strong> <strong style="color: green;">${formatUSD(
+      calcTotal(
+        payouts,
+        fee,
+        contributon,
+        iva,
+        ret_iva,
+        ret_rent,
+        adm_fee,
+        loan
+      )
+    )}</strong></div>
   </div>
 
   <footer>
@@ -315,6 +366,5 @@ export function getLiquidationTemplate(payouts: any[]) {
 
 </body>
 </html>
-`
-  );
+`;
 }

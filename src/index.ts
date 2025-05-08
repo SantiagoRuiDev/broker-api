@@ -2,8 +2,6 @@ import express from "express";
 import cors from "cors";
 import config from "./utils/config";
 
-console.log("CONFIG:", config); // Solo para depurar en producción
-
 import agencyRoutes from "./routes/agency.routes";
 import userRoutes from "./routes/user.routes";
 import clientRoutes from "./routes/client.routes";

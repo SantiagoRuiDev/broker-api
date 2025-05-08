@@ -310,12 +310,11 @@ export class SettlementController {
         return;
       }
 
+      const liquidation_number = (lastLiquidation) ? Number(lastLiquidation.dataValues.numero_liquidacion.split("/")[0]) + 1 : 1;
+
       res.status(200).json({
         payouts: payouts,
-        count:
-          Number(
-            lastLiquidation?.dataValues.numero_liquidacion.split("/")[0]
-          ) || 0 + 1,
+        count: liquidation_number
       });
     } catch (error) {
       if (error instanceof Error) {
