@@ -795,38 +795,30 @@ export class SettlementController {
         );
       }
 
-      const filename =
-        "LIQUIDACION " +
-        String(payouts[0].dataValues.numero_liquidacion).split("/")[0];
-      const html = getLiquidationTemplate(payouts);
-      const filePath = path.join(
-        __dirname,
-        "../../public/pdf",
-        filename + ".pdf"
-      );
-
-      const options: HTML2PDFOptions = {
+      const options: CreateOptions = {
         format: "A4",
-        filePath: "./public/pdf/" + filename + ".pdf",
-        landscape: false,
-        resolution: {
-          height: 1920,
-          width: 1080,
-        },
+        orientation: "portrait",
       };
+      // Generar el PDF
+      const filename =
+      "LIQUIDACION " +
+      String(payouts[0].dataValues.numero_liquidacion).split("/")[0];
+      PDF.create(getLiquidationTemplate(payouts), options).toBuffer(
+        (err, buffer) => {
+          if (err) {
+            res.status(500).send("Error al generar el PDF");
+            return;
+          }
 
-      await html2pdf.createPDF(html, options);
-
-      const pdfBuffer = await fs.readFile(filePath);
-
-      // 3. Enviar como archivo descargable
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${filename}.pdf"`
+          // Enviar el PDF como una respuesta para su descarga
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader(
+            "Content-Disposition",
+            'attachment; filename="'+filename+'.pdf"'
+          );
+          return res.status(200).send(buffer);
+        }
       );
-
-      res.send(pdfBuffer);
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
