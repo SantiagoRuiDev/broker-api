@@ -115,12 +115,15 @@ export function getLiquidationTemplate(payouts: any[]) {
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Liquidación - Ciaros S.A.</title>
   <style>
     * {
   box-sizing: border-box;
 }
-    
+    .datatable, .wide-summary {
+  page-break-inside: avoid;
+}
     @page {
       size: A4;
       margin: 20mm;
@@ -152,6 +155,10 @@ export function getLiquidationTemplate(payouts: any[]) {
     padding: 10px;
     vertical-align: middle;
   }
+
+  td {
+  word-break: break-word;
+}
 
   table.header-table td:nth-child(1) {
     text-align: left;

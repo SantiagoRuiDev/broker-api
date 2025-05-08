@@ -10,7 +10,6 @@ import { v4 as uuidv4 } from "uuid";
 import {
   ISettlement,
   ISettlementExport,
-  ISettlementMapped,
   KanbanStates,
   LiquidacionTypes,
 } from "../interfaces/settlement.interface";
@@ -22,7 +21,10 @@ import { getLiquidationTemplate } from "../templates/liquidation.template";
 import { getTextTemplate } from "../templates/text.template";
 import { generatePDF } from "../utils/generator";
 import { CreateOptions } from "html-pdf";
-import PDF from 'html-pdf';
+import PDF from "html-pdf";
+import fs from "fs/promises";
+import { html2pdf, HTML2PDFOptions } from "html2pdf-ts";
+import path from "path";
 
 export class SettlementController {
   constructor() {}
@@ -310,11 +312,14 @@ export class SettlementController {
         return;
       }
 
-      const liquidation_number = (lastLiquidation) ? Number(lastLiquidation.dataValues.numero_liquidacion.split("/")[0]) + 1 : 1;
+      const liquidation_number = lastLiquidation
+        ? Number(lastLiquidation.dataValues.numero_liquidacion.split("/")[0]) +
+          1
+        : 1;
 
       res.status(200).json({
         payouts: payouts,
-        count: liquidation_number
+        count: liquidation_number,
       });
     } catch (error) {
       if (error instanceof Error) {
@@ -654,34 +659,37 @@ export class SettlementController {
       let remaining = filteredRows.length;
 
       for (const row of filteredRows) {
-        const options: CreateOptions = {
+        const filename =
+          "PENDIENTE " +
+          String(payouts[0].dataValues.id).split("-")[0];
+        const html = getPendingTemplate(row.liquidaciones);
+        const filePath = path.join(
+          __dirname,
+          "../../public/pdf",
+          filename + ".pdf"
+        );
+
+        const options: HTML2PDFOptions = {
           format: "A4",
-          orientation: "portrait",
+          filePath: "./public/pdf/" + filename + ".pdf",
+          landscape: false,
+          resolution: {
+            height: 1920,
+            width: 1080,
+          },
         };
 
-        // Generar el PDF
-        PDF.create(getPendingTemplate(row.liquidaciones), options).toBuffer(
-          (err, buffer) => {
-            if (err) {
-              console.error(
-                `Error generando PDF para ${row.codigo_agente}`,
-                err
-              );
-              return;
-            }
+        await html2pdf.createPDF(html, options);
 
-            // Agregar el PDF al archivo zip
-            archive.append(buffer, {
-              name: `PENDIENTES_${row.codigo_agente}.pdf`,
-            });
-
-            remaining--;
-            if (remaining === 0) {
-              // Finalizar el zip cuando todos estén agregados
-              archive.finalize();
-            }
-          }
-        );
+        const pdfBuffer = await fs.readFile(filePath);
+        archive.append(pdfBuffer, {
+          name: `PENDIENTES_${row.codigo_agente}.pdf`,
+        });
+        remaining--;
+        if (remaining === 0) {
+          // Finalizar el zip cuando todos estén agregados
+          archive.finalize();
+        }
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -786,39 +794,39 @@ export class SettlementController {
           "Porfavor ingresa un numero de liquidación que tenga liquidaciones"
         );
       }
-      const options: CreateOptions = {
-        format: "A4",
-        orientation: "portrait",
-      };
-      // Generar el PDF
-      const filename =
-      "LIQUIDACION " +
-      String(payouts[0].dataValues.numero_liquidacion).split("/")[0];
-      PDF.create(getLiquidationTemplate(payouts), options).toBuffer(
-        (err, buffer) => {
-          if (err) {
-            res.status(500).send("Error al generar el PDF");
-            return;
-          }
 
-          // Enviar el PDF como una respuesta para su descarga
-          res.setHeader("Content-Type", "application/pdf");
-          res.setHeader(
-            "Content-Disposition",
-            'attachment; filename="'+filename+'.pdf"'
-          );
-          return res.status(200).send(buffer);
-        }
-      );/*
-      const buffer = await generatePDF(getLiquidationTemplate(payouts));
-      // Enviar el PDF como una respuesta para su descarga
+      const filename =
+        "LIQUIDACION " +
+        String(payouts[0].dataValues.numero_liquidacion).split("/")[0];
+      const html = getLiquidationTemplate(payouts);
+      const filePath = path.join(
+        __dirname,
+        "../../public/pdf",
+        filename + ".pdf"
+      );
+
+      const options: HTML2PDFOptions = {
+        format: "A4",
+        filePath: "./public/pdf/" + filename + ".pdf",
+        landscape: false,
+        resolution: {
+          height: 1920,
+          width: 1080,
+        },
+      };
+
+      await html2pdf.createPDF(html, options);
+
+      const pdfBuffer = await fs.readFile(filePath);
+
+      // 3. Enviar como archivo descargable
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        'attachment; filename="' + filename + '"'
+        `attachment; filename="${filename}.pdf"`
       );
-      res.status(200).send(buffer);
-      return;*/
+
+      res.send(pdfBuffer);
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
