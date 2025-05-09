@@ -30,15 +30,16 @@ export function getPendingTemplate(settlements: ISettlementMapped[]) {
   <meta charset="UTF-8">
   <title>Negocios pendientes - Ciaros S.A.</title>
   <style>
-    @page {
-      size: A4;
-      margin: 20mm;
-    }
-      html, body {
-  height: 100%;
+@page {
+  margin: 0;
 }
 
-
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;

@@ -1,3 +1,4 @@
+import { IAgent } from "../interfaces/agent.interface";
 import { ISettlementMapped } from "../interfaces/settlement.interface";
 
 function formatUSD(value: number): string {
@@ -7,10 +8,6 @@ function formatUSD(value: number): string {
     minimumFractionDigits: 2,
   });
 }
-
-const calcAdministrative = (subtotal: number, adm_fee: number) => {
-  return (subtotal * adm_fee) / 100;
-};
 
 const calcContribution = (
   payouts: any[],
@@ -50,27 +47,6 @@ const calcSubtotal = (payouts: any[], fee: number, contribution: number) => {
   return total - calcContribution(payouts, fee, contribution);
 };
 
-const calcTotal = (
-  payouts: any[],
-  fee: number,
-  contribution: number,
-  iva: number,
-  iva_ret: number,
-  rent_ret: number,
-  adm_fee: number,
-  loan: number
-) => {
-  const subtotal = calcSubtotal(payouts, fee, contribution);
-  return (
-    subtotal +
-    calcIva(subtotal, iva) -
-    calcIvaRetention(subtotal, iva, iva_ret) -
-    calcRent(subtotal, rent_ret) -
-    calcAdministrative(subtotal, adm_fee) -
-    loan
-  );
-};
-
 function escapeHTML(str = "") {
   return str
     .replace(/&/g, "&amp;")
@@ -80,16 +56,14 @@ function escapeHTML(str = "") {
     .replace(/'/g, "&#039;");
 }
 
-export function getLiquidationTemplate(payouts: any[]) {
-  const iva = payouts[0].Subagente.iva || 0;
-  const ret_rent = payouts[0].Subagente.ret_renta || 0;
-  const ret_iva = payouts[0].Subagente.ret_iva || 0;
+export function getLiquidationTemplate(payouts: any[], agent: IAgent) {
+  const iva = Number(agent.iva) || 0;
+  const ret_rent = Number(agent.ret_renta) || 0;
+  const ret_iva = Number(agent.ret_iva) || 0;
   const contributon = 0.005;
-  const fee = payouts[0].Subagente.tarifa_comision || 0;
-  const adm_fee = payouts[0].Subagente.gastos_adm || 0;
+  const fee = Number(agent.tarifa_comision) || 0;
+  const adm_fee = Number(agent.gastos_adm) || 0;
   const loan = payouts[0].prestamo || 0;
-
-  const agent = payouts[0].Subagente;
 
   const liquidation_date = payouts[0].fecha_liquidacion;
   const liquidation_number = String(payouts[0].numero_liquidacion).split(
@@ -321,16 +295,7 @@ html, body {
     <div><strong>Gastos Adm:</strong> ${formatUSD(adm_fee)}</div>
     <div><strong>Préstamos:</strong> ${formatUSD(loan)}</div>
     <div><strong>Total a Recibir:</strong> <strong style="color: green;">${formatUSD(
-      calcTotal(
-        payouts,
-        fee,
-        contributon,
-        iva,
-        ret_iva,
-        ret_rent,
-        adm_fee,
-        loan
-      )
+      payouts[0].total_liquidado
     )}</strong></div>
   </div>
 

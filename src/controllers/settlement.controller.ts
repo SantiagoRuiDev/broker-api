@@ -387,6 +387,7 @@ export class SettlementController {
           numero_liquidacion: liq_number,
           total_liquidado: liq_total,
           prestamo: liq_loan,
+          SubagenteCodigo: liquidationAlreadyExist[0].dataValues.SubagenteCodigo
         },
         {
           where: {
@@ -782,10 +783,6 @@ export class SettlementController {
             model: Aseguradoras,
             required: false,
           },
-          {
-            model: Subagentes,
-            required: false,
-          },
         ],
       });
 
@@ -795,12 +792,19 @@ export class SettlementController {
         );
       }
 
-      
+      const agent = await Subagentes.findOne({where: {codigo: payouts[0].dataValues.SubagenteCodigo}})
+
+      if(!agent){
+        throw new Error(
+          "No encontramos un subagente relacionado a estas liquidaciones"
+        );
+      }
+
       const filename =
         "LIQUIDACION " +
         String(payouts[0].dataValues.numero_liquidacion).split("/")[0];
 
-      const pdfBuffer = await generatePDF(getLiquidationTemplate(payouts));
+      const pdfBuffer = await generatePDF(getLiquidationTemplate(payouts, agent.dataValues));
 
       // 3. Enviar como archivo descargable
       res.setHeader("Content-Type", "application/pdf");
