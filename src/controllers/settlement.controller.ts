@@ -795,30 +795,21 @@ export class SettlementController {
         );
       }
 
-      const options: CreateOptions = {
-        format: "A4",
-        orientation: "portrait",
-      };
-      // Generar el PDF
+      
       const filename =
-      "LIQUIDACION " +
-      String(payouts[0].dataValues.numero_liquidacion).split("/")[0];
-      PDF.create(getLiquidationTemplate(payouts), options).toBuffer(
-        (err, buffer) => {
-          if (err) {
-            res.status(500).send("Error al generar el PDF");
-            return;
-          }
+        "LIQUIDACION " +
+        String(payouts[0].dataValues.numero_liquidacion).split("/")[0];
 
-          // Enviar el PDF como una respuesta para su descarga
-          res.setHeader("Content-Type", "application/pdf");
-          res.setHeader(
-            "Content-Disposition",
-            'attachment; filename="'+filename+'.pdf"'
-          );
-          return res.status(200).send(buffer);
-        }
+      const pdfBuffer = await generatePDF(getLiquidationTemplate(payouts));
+
+      // 3. Enviar como archivo descargable
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filename}.pdf"`
       );
+
+      res.send(pdfBuffer);
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

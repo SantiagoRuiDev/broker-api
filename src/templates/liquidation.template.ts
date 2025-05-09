@@ -124,14 +124,16 @@ export function getLiquidationTemplate(payouts: any[]) {
     .datatable, .wide-summary {
   page-break-inside: avoid;
 }
-    @page {
-      size: A4;
-      margin: 20mm;
-    }
-      html, body {
-  height: 100%;
+@page {
+  margin: 0;
 }
 
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
@@ -139,43 +141,23 @@ export function getLiquidationTemplate(payouts: any[]) {
       color: #333;
       background-color: #f9f9f9;
     }
-
     header, footer {
-    font-size: 12px;
-    color: #555;
-  }
+      font-size: 12px;
+      color: #555;
+    }
 
-  table.header-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
-  }
-
-  table.header-table td {
-    padding: 10px;
-    vertical-align: middle;
-  }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
 
   td {
   word-break: break-word;
 }
-
-  table.header-table td:nth-child(1) {
-    text-align: left;
-    font-weight: bold;
-  }
-
-  table.header-table td:nth-child(2) {
-    text-align: left;
-  }
-
-  table.header-table td:nth-child(3) {
-    text-align: left;
-  }
-
-  table.header-table tr {
-    border-bottom: 1px solid #ccc;
-  }
 
     .logo img {
       max-width: 150px;
@@ -190,26 +172,25 @@ export function getLiquidationTemplate(payouts: any[]) {
       color: #2c3e50;
     }
 
-  .custom-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 10px; /* separación entre columnas */
-    font-size: 13px;
-    margin-bottom: 25px;
-  }
+    .section-two-columns {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 25px;
+      font-size: 13px;
+    }
 
-  .column-cell {
-    background-color: #fff;
-    padding: 12px;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-    vertical-align: top;
-    width: 50%;
-  }
+    .column {
+      width: 48%;
+      background-color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
 
-  .column-cell div {
-    margin-bottom: 6px;
-  }
+    .column div {
+      margin-bottom: 6px;
+    }
+
 
     .datatable {
       width: 100%;
@@ -267,25 +248,19 @@ export function getLiquidationTemplate(payouts: any[]) {
   </style>
 </head>
 <body>
-
   <header>
-    
-<table class="header-table">
-  <tbody>
-    <tr>
-      <td><strong>Ciaros S.A.</strong></td>
-      <td>
+    <div>
+      <strong>Ciaros S.A.</strong>
+    </div>
+    <div>
         <div>Fecha: ${liquidation_date}</div>
         <div>Liquidación N°: ${liquidation_number}</div>
-      </td>
-      <td class="header-contact">
-        <div>Email: contacto@ciaros.com</div>
-        <div>Tel: +593 7 456 7890</div>
-        <div>Dirección: Calle Ejemplo 456, Guayaquil, Ecuador</div>
-      </td>
-    </tr>
-  </tbody>
-</table>
+    </div>
+    <div class="header-contact">
+      <div>Email: contacto@ciaros.com</div>
+      <div>Tel: +593 7 456 7890</div>
+      <div>Dirección: Calle Ejemplo 456, Guayaquil, Ecuador</div>
+    </div>
   </header>
 
   <div class="title">Liquidación</div>
@@ -294,26 +269,21 @@ export function getLiquidationTemplate(payouts: any[]) {
     <img src="https://i.imgur.com/njPPBti.png" alt="Logo">
   </div>
 
-  
-<table class="custom-table">
-  <tbody>
-    <tr>
-      <td class="column-cell">
+    <div class="section-two-columns">
+    <div class="column">
         <div><strong>Nombre del Agente:</strong> ${agent.nombres}</div>
         <div><strong>Apellido del Agente:</strong> ${agent.apellidos}</div>
         <div><strong>Ciudad:</strong> ${agent.ciudad}</div>
         <div><strong>Regimen:</strong> ${agent.tipo_de_regimen}</div>
         <div><strong>Código:</strong> ${agent.codigo}</div>
-      </td>
-      <td class="column-cell">
+    </div>
+    <div class="column">
         <div><strong>IVA (%):</strong> ${iva}%</div>
         <div><strong>Retención IVA (%):</strong> ${ret_iva}%</div>
         <div><strong>Retención Renta (%):</strong> ${ret_rent}%</div>
         <div><strong>Comisión (%):</strong> ${fee}%</div>
-      </td>
-    </tr>
-  </tbody>
-</table>
+    </div>
+  </div>
 
   <table class="datatable">
     <thead>
