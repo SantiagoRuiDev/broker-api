@@ -28,7 +28,7 @@ export const getTextTemplate = (payout: ISettlementMapped, config: IConfiguratio
       "	" +
       config.moneda.toUpperCase() +
       "	" +
-      to13DigitString(payout.total_liquidado || 0) +
+      to13DigitString(payout.Finalizada?.total_liquidado || 0) +
       "	" +
       forma_de_pago +
       "	" +
@@ -47,7 +47,7 @@ export const getTextTemplate = (payout: ISettlementMapped, config: IConfiguratio
       ciudad_beneficiario +
       "			" +
       "PAGO LIQUIDACION " +
-      payout.numero_liquidacion?.split("/")[0]
+      payout.FinalizadaNumeroLiquidacion?.split("/")[0]
     );
   }
 };

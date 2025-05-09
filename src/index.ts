@@ -44,7 +44,7 @@ app.use("/api/configuration", configurationRoutes);
 
 app.use("/public/media", express.static("public/media"));
 
-conn.sync({ alter: true }).then(async () => {
+conn.sync({ force: true }).then(async () => {
   // Creamos un usuario
 
   const adminExist = await Usuarios.findOne({

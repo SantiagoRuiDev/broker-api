@@ -17,10 +17,6 @@ export const model = (sequelize: any, DataTypes: any) => {
         defaultValue: 'Pre Liquidacion',
         allowNull: false,
       },
-      kanban: {
-        type: DataTypes.ENUM("Emitida", "Enviada", "Lista", "Pagada"),
-        allowNull: true,
-      },
       estado: {
         type: DataTypes.ENUM("Emitida", "Lista", "Por Facturar", "Por Liberar"),
         defaultValue: 'Emitida',
@@ -92,22 +88,6 @@ export const model = (sequelize: any, DataTypes: any) => {
       },
       Notas: {
         type: DataTypes.STRING,
-        allowNull: true,
-      },
-      numero_liquidacion: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      fecha_liquidacion: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      total_liquidado: {
-        type: DataTypes.FLOAT,
-        allowNull: true,
-      },
-      prestamo: {
-        type: DataTypes.FLOAT,
         allowNull: true,
       },
     },

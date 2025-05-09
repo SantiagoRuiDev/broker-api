@@ -57,16 +57,17 @@ function escapeHTML(str = "") {
 }
 
 export function getLiquidationTemplate(payouts: any[], agent: IAgent) {
-  const iva = Number(agent.iva) || 0;
-  const ret_rent = Number(agent.ret_renta) || 0;
-  const ret_iva = Number(agent.ret_iva) || 0;
+  const iva = Number(payouts[0].Finalizada.iva) || 0;
+  const ret_rent = Number(payouts[0].Finalizada.ret_renta) || 0;
+  const ret_iva = Number(payouts[0].Finalizada.ret_iva) || 0;
   const contributon = 0.005;
-  const fee = Number(agent.tarifa_comision) || 0;
-  const adm_fee = Number(agent.gastos_adm) || 0;
-  const loan = payouts[0].prestamo || 0;
+  const fee = Number(payouts[0].Finalizada.tarifa_comision) || 0;
+  const adm_fee = Number(payouts[0].Finalizada.gastos_adm) || 0;
+  const loan = payouts[0].Finalizada.prestamo || 0;
+  const total = payouts[0].Finalizada.total_liquidado || 0;
 
-  const liquidation_date = payouts[0].fecha_liquidacion;
-  const liquidation_number = String(payouts[0].numero_liquidacion).split(
+  const liquidation_date = payouts[0].Finalizada.fecha_liquidacion;
+  const liquidation_number = String(payouts[0].Finalizada.numero_liquidacion).split(
     "/"
   )[0];
 
@@ -295,7 +296,7 @@ html, body {
     <div><strong>Gastos Adm:</strong> ${formatUSD(adm_fee)}</div>
     <div><strong>Préstamos:</strong> ${formatUSD(loan)}</div>
     <div><strong>Total a Recibir:</strong> <strong style="color: green;">${formatUSD(
-      payouts[0].total_liquidado
+      total
     )}</strong></div>
   </div>
 

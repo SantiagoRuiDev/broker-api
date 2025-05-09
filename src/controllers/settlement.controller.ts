@@ -5,6 +5,7 @@ import {
   Subagentes,
   Aseguradoras,
   Configuracion,
+  Finalizadas,
 } from "../database/connection";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -25,6 +26,7 @@ import PDF from "html-pdf";
 import fs from "fs/promises";
 import { html2pdf, HTML2PDFOptions } from "html2pdf-ts";
 import path from "path";
+import { Op } from "sequelize";
 
 export class SettlementController {
   constructor() {}
@@ -286,19 +288,19 @@ export class SettlementController {
         order: [
           [
             Sequelize.literal(
-              `CAST(SUBSTRING_INDEX(numero_liquidacion, '/', -1) AS UNSIGNED)`
+              `CAST(SUBSTRING_INDEX(FinalizadaNumeroLiquidacion, '/', -1) AS UNSIGNED)`
             ),
             "DESC",
           ], // Año
           [
             Sequelize.literal(
-              `CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(numero_liquidacion, '/', 2), '/', -1) AS UNSIGNED)`
+              `CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(FinalizadaNumeroLiquidacion, '/', 2), '/', -1) AS UNSIGNED)`
             ),
             "DESC",
           ], // Mes
           [
             Sequelize.literal(
-              `CAST(SUBSTRING_INDEX(numero_liquidacion, '/', 1) AS UNSIGNED)`
+              `CAST(SUBSTRING_INDEX(FinalizadaNumeroLiquidacion, '/', 1) AS UNSIGNED)`
             ),
             "DESC",
           ], // Secuencial
@@ -313,8 +315,9 @@ export class SettlementController {
       }
 
       const liquidation_number = lastLiquidation
-        ? Number(lastLiquidation.dataValues.numero_liquidacion.split("/")[0]) +
-          1
+        ? Number(
+            lastLiquidation.dataValues.FinalizadaNumeroLiquidacion.split("/")[0]
+          ) + 1
         : 1;
 
       res.status(200).json({
@@ -330,21 +333,51 @@ export class SettlementController {
 
   async getPayouts(req: Request, res: Response): Promise<void> {
     try {
-      const payouts = await Liquidaciones.findAll({
-        include: [
-          {
-            model: Clientes, // Modelo de Clientes
-            required: false, // `false` para LEFT JOIN, `true` para INNER JOIN
+      const { finished } = req.query;
+      let payouts: any[] = [];
+      if (!finished) {
+        payouts = await Liquidaciones.findAll({
+          include: [
+            {
+              model: Clientes, // Modelo de Clientes
+              required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
+            },
+            {
+              model: Subagentes,
+              required: true,
+            },
+          ],
+        });
+        if (!payouts) {
+          res.status(404).json({ message: "No encontramos Liquidaciones" });
+          return;
+        }
+      } else {
+        payouts = await Liquidaciones.findAll({
+          where: {
+            FinalizadaNumeroLiquidacion: {
+              [Op.not]: null,
+            },
           },
-          {
-            model: Subagentes,
-            required: false,
-          },
-        ],
-      });
-      if (!payouts) {
-        res.status(404).json({ message: "No encontramos Liquidaciones" });
-        return;
+          include: [
+            {
+              model: Clientes, // Modelo de Clientes
+              required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
+            },
+            {
+              model: Subagentes,
+              required: true,
+            },
+            {
+              model: Finalizadas,
+              required: true,
+            },
+          ],
+        });
+        if (!payouts) {
+          res.status(404).json({ message: "No encontramos Liquidaciones" });
+          return;
+        }
       }
       res.status(200).json(payouts);
     } catch (error) {
@@ -359,8 +392,11 @@ export class SettlementController {
       const rows: string[] = req.body.rows;
       const liq_date = req.body.liquidation_date;
       const liq_number = req.body.liquidation_number;
+      const { iva, ret_iva, ret_renta, gastos_adm, tarifa_comision, agent } =
+        req.body;
       let liq_total = req.body.total;
       let liq_loan = req.body.loan;
+      let agent_code = agent;
 
       if (!Array.isArray(rows) || rows.length === 0) {
         res.status(400).json({ message: "Se requiere un array de IDs" });
@@ -368,26 +404,48 @@ export class SettlementController {
       }
 
       const liquidationAlreadyExist = await Liquidaciones.findAll({
-        where: { numero_liquidacion: liq_number },
+        where: { FinalizadaNumeroLiquidacion: liq_number },
+        include: [
+          {
+            model: Finalizadas,
+            required: true,
+          },
+        ],
       });
 
       if (liquidationAlreadyExist.length > 0) {
         // Si la liquidación ya existe, obtiene los valores calculados anteriormente y los recalcula
-        liq_total += liquidationAlreadyExist[0].dataValues.total_liquidado;
-        liq_loan += liquidationAlreadyExist[0].dataValues.prestamo;
+        liq_total +=
+          liquidationAlreadyExist[0].dataValues.Finalizada.total_liquidado;
+        liq_loan += liquidationAlreadyExist[0].dataValues.Finalizada.prestamo;
+        agent_code = liquidationAlreadyExist[0].dataValues.SubagenteCodigo;
+
+        await Finalizadas.update(
+          { total_liquidado: liq_total, prestamo: liq_loan },
+          { where: { numero_liquidacion: liq_number } }
+        );
         rows.push(...liquidationAlreadyExist.map((l) => l.dataValues.id)); // Empuja el arreglo de las ID ya registradas en la DB
+      } else {
+        await Finalizadas.create({
+          kanban: "Emitida",
+          numero_liquidacion: liq_number,
+          fecha_liquidacion: liq_date,
+          prestamo: liq_loan,
+          total_liquidado: liq_total,
+          iva: iva,
+          ret_iva: ret_iva,
+          ret_renta: ret_renta,
+          gastos_adm: gastos_adm,
+          tarifa_comision: tarifa_comision,
+        });
       }
 
       const [updatedCount] = await Liquidaciones.update(
         {
-          kanban: "Emitida",
           tipo: "Consolidado",
           estado: "Emitida",
-          fecha_liquidacion: liq_date,
-          numero_liquidacion: liq_number,
-          total_liquidado: liq_total,
-          prestamo: liq_loan,
-          SubagenteCodigo: liquidationAlreadyExist[0].dataValues.SubagenteCodigo
+          FinalizadaNumeroLiquidacion: liq_number,
+          SubagenteCodigo: agent_code,
         },
         {
           where: {
@@ -498,35 +556,43 @@ export class SettlementController {
     try {
       const status = req.body.status;
       // Extraer IDs desde query
-      let ids = req.query.id;
+      const liq_number = req.query.id;
 
       // Si viene un solo ID, convertirlo en array
-      if (!ids) {
+      if (!liq_number) {
         res.status(400).json({ message: "No se proporcionaron IDs." });
         return;
       }
 
-      if (!Array.isArray(ids)) {
-        ids = [ids]; // convertir a array si es un solo ID
+      if (!Array.isArray(liq_number) || liq_number.length === 0) {
+        res.status(400).json({ message: "Se requiere un array de IDs" });
+        return;
       }
 
-      await Liquidaciones.update({ kanban: status }, { where: { id: ids } });
+      await Finalizadas.update(
+        { kanban: status },
+        { where: { numero_liquidacion: liq_number[0] } }
+      );
 
       if (status == KanbanStates.LISTA) {
         const liq = await Liquidaciones.findOne({
-          where: { id: ids[0] },
+          where: { FinalizadaNumeroLiquidacion: liq_number[0] },
           include: [
             {
               model: Clientes,
-              required: false,
+              required: true,
             },
             {
               model: Aseguradoras,
-              required: false,
+              required: true,
             },
             {
               model: Subagentes,
-              required: false,
+              required: true,
+            },
+            {
+              model: Finalizadas,
+              required: true,
             },
           ],
         });
@@ -536,7 +602,7 @@ export class SettlementController {
         }
 
         const filename =
-          String(liq.dataValues.numero_liquidacion).split("/")[0] +
+          String(liq_number[0]).split("/")[0] +
           " " +
           String(liq.dataValues.Subagente.nombres).toUpperCase() +
           " " +
@@ -566,6 +632,9 @@ export class SettlementController {
   async deleteAll(req: Request, res: Response): Promise<void> {
     try {
       await Liquidaciones.destroy({
+        where: {},
+      });
+      await Finalizadas.destroy({
         where: {},
       });
 
@@ -661,8 +730,7 @@ export class SettlementController {
 
       for (const row of filteredRows) {
         const filename =
-          "PENDIENTE " +
-          String(payouts[0].dataValues.id).split("-")[0];
+          "PENDIENTE " + String(payouts[0].dataValues.id).split("-")[0];
         const html = getPendingTemplate(row.liquidaciones);
         const filePath = path.join(
           __dirname,
@@ -713,19 +781,23 @@ export class SettlementController {
       }
 
       const liq = await Liquidaciones.findOne({
-        where: { numero_liquidacion: id[0] },
+        where: { FinalizadaNumeroLiquidacion: id[0] },
         include: [
           {
             model: Clientes,
-            required: false,
+            required: true,
           },
           {
             model: Aseguradoras,
-            required: false,
+            required: true,
           },
           {
             model: Subagentes,
-            required: false,
+            required: true,
+          },
+          {
+            model: Finalizadas,
+            required: true,
           },
         ],
       });
@@ -738,7 +810,7 @@ export class SettlementController {
         where: { id: "CONFIGURACION" },
       });
       const filename =
-        String(liq.dataValues.numero_liquidacion).split("/")[0] +
+        String(liq.dataValues.FinalizadaNumeroLiquidacion).split("/")[0] +
         " " +
         String(liq.dataValues.Subagente.nombres).toUpperCase() +
         " " +
@@ -772,16 +844,20 @@ export class SettlementController {
 
       const payouts = await Liquidaciones.findAll({
         where: {
-          numero_liquidacion: id, // Sequelize va a hacer un WHERE id IN (...)
+          FinalizadaNumeroLiquidacion: id, // Sequelize va a hacer un WHERE id IN (...)
         },
         include: [
           {
             model: Clientes,
-            required: false,
+            required: true,
           },
           {
             model: Aseguradoras,
-            required: false,
+            required: true,
+          },
+          {
+            model: Finalizadas,
+            required: true,
           },
         ],
       });
@@ -792,9 +868,11 @@ export class SettlementController {
         );
       }
 
-      const agent = await Subagentes.findOne({where: {codigo: payouts[0].dataValues.SubagenteCodigo}})
+      const agent = await Subagentes.findOne({
+        where: { codigo: payouts[0].dataValues.SubagenteCodigo },
+      });
 
-      if(!agent){
+      if (!agent) {
         throw new Error(
           "No encontramos un subagente relacionado a estas liquidaciones"
         );
@@ -802,9 +880,11 @@ export class SettlementController {
 
       const filename =
         "LIQUIDACION " +
-        String(payouts[0].dataValues.numero_liquidacion).split("/")[0];
+        String(payouts[0].dataValues.FinalizadaNumeroLiquidacion).split("/")[0];
 
-      const pdfBuffer = await generatePDF(getLiquidationTemplate(payouts, agent.dataValues));
+      const pdfBuffer = await generatePDF(
+        getLiquidationTemplate(payouts, agent.dataValues)
+      );
 
       // 3. Enviar como archivo descargable
       res.setHeader("Content-Type", "application/pdf");

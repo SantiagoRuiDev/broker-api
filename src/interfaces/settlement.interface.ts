@@ -1,6 +1,7 @@
 import { AseguradoraTS } from "./agency.interface";
 import { IAgent } from "./agent.interface";
 import { IClient } from "./client.interface";
+import { IFinished } from "./finished.interface";
 
 export interface ISettlement {
   id?: string;
@@ -19,6 +20,7 @@ export interface ISettlement {
   f_contab?: Date;
   valor_prima?: number;
   comision?: number;
+  FinalizadaNumeroLiquidacion?: string;
   F?: string;
   L?: string;
   P?: string;
@@ -31,7 +33,6 @@ export interface ISettlementMapped {
   id?: string;
   tipo: LiquidacionTypes;
   estado: LiquidacionStates;
-  kanban?: KanbanStates;
   factura?: number;
   documento?: number;
   orden?: string;
@@ -53,9 +54,8 @@ export interface ISettlementMapped {
   P?: string;
   Notas?: string;
   SAge?: string;
-  numero_liquidacion?: string;
-  fecha_liquidacion?: string;
-  total_liquidado?: number;
+  FinalizadaNumeroLiquidacion?: string;
+  Finalizada?: IFinished;
 }
 
 export interface ISettlementExport {
