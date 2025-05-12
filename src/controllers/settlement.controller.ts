@@ -564,19 +564,14 @@ export class SettlementController {
         return;
       }
 
-      if (!Array.isArray(liq_number) || liq_number.length === 0) {
-        res.status(400).json({ message: "Se requiere un array de IDs" });
-        return;
-      }
-
       await Finalizadas.update(
         { kanban: status },
-        { where: { numero_liquidacion: liq_number[0] } }
+        { where: { numero_liquidacion: liq_number } }
       );
 
       if (status == KanbanStates.LISTA) {
         const liq = await Liquidaciones.findOne({
-          where: { FinalizadaNumeroLiquidacion: liq_number[0] },
+          where: { FinalizadaNumeroLiquidacion: liq_number },
           include: [
             {
               model: Clientes,
@@ -602,7 +597,7 @@ export class SettlementController {
         }
 
         const filename =
-          String(liq_number[0]).split("/")[0] +
+          String(liq_number).split("/")[0] +
           " " +
           String(liq.dataValues.Subagente.nombres).toUpperCase() +
           " " +
