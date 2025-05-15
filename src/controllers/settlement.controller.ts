@@ -12,6 +12,7 @@ import {
   ISettlement,
   ISettlementExport,
   KanbanStates,
+  LiquidacionStates,
   LiquidacionTypes,
 } from "../interfaces/settlement.interface";
 import { generateAgentCode } from "../utils/code";
@@ -664,35 +665,22 @@ export class SettlementController {
 
   async getPendingPdfs(req: Request, res: Response): Promise<void> {
     try {
-      // Extraer IDs desde query
-      let ids = req.query.id;
-
-      // Si viene un solo ID, convertirlo en array
-      if (!ids) {
-        res.status(400).json({ message: "No se proporcionaron IDs." });
-        return;
-      }
-
-      if (!Array.isArray(ids)) {
-        ids = [ids]; // convertir a array si es un solo ID
-      }
-
       const payouts = await Liquidaciones.findAll({
         where: {
-          id: ids, // Sequelize va a hacer un WHERE id IN (...)
+          tipo: LiquidacionTypes.NEGOCIO_PENDIENTE
         },
         include: [
           {
             model: Clientes,
-            required: false,
+            required: true,
           },
           {
             model: Aseguradoras,
-            required: false,
+            required: true,
           },
           {
             model: Subagentes,
-            required: false,
+            required: true,
           },
         ],
       });
@@ -724,29 +712,10 @@ export class SettlementController {
       let remaining = filteredRows.length;
 
       for (const row of filteredRows) {
-        const filename =
-          "PENDIENTE " + String(payouts[0].dataValues.id).split("-")[0];
         const html = getPendingTemplate(row.liquidaciones);
-        const filePath = path.join(
-          __dirname,
-          "../../public/pdf",
-          filename + ".pdf"
-        );
 
-        const options: HTML2PDFOptions = {
-          format: "A4",
-          filePath: "./public/pdf/" + filename + ".pdf",
-          landscape: false,
-          resolution: {
-            height: 1920,
-            width: 1080,
-          },
-        };
-
-        await html2pdf.createPDF(html, options);
-
-        const pdfBuffer = await fs.readFile(filePath);
-        archive.append(pdfBuffer, {
+        const buffer = await generatePDF(html);
+        archive.append(buffer, {
           name: `PENDIENTES_${row.codigo_agente}.pdf`,
         });
         remaining--;

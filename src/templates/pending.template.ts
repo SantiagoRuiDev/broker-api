@@ -28,8 +28,15 @@ export function getPendingTemplate(settlements: ISettlementMapped[]) {
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Negocios pendientes - Ciaros S.A.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Liquidación - Ciaros S.A.</title>
   <style>
+    * {
+  box-sizing: border-box;
+}
+    .datatable, .wide-summary {
+  page-break-inside: avoid;
+}
 @page {
   margin: 0;
 }
@@ -47,35 +54,23 @@ html, body {
       color: #333;
       background-color: #f9f9f9;
     }
-
     header, footer {
-    font-size: 12px;
-    color: #555;
-  }
+      font-size: 12px;
+      color: #555;
+    }
 
-  table.header-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
-  }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
 
-  table.header-table td {
-    padding: 10px;
-    vertical-align: middle;
-  }
-
-  table.header-table td:nth-child(1) {
-    text-align: left;
-    font-weight: bold;
-  }
-
-  table.header-table td:nth-child(2) {
-    text-align: left;
-  }
-    
-  table.header-table tr {
-    border-bottom: 1px solid #ccc;
-  }
+  td {
+  word-break: break-word;
+}
 
     .logo img {
       max-width: 150px;
@@ -108,6 +103,7 @@ html, body {
     .column div {
       margin-bottom: 6px;
     }
+
 
     .datatable {
       width: 100%;
@@ -153,7 +149,6 @@ html, body {
     }
 
     footer {
-      margin-top: 20px;
       border-top: 1px solid #ccc;
       padding-top: 10px;
       text-align: center;
@@ -162,24 +157,19 @@ html, body {
     .footer-contact div {
       margin: 3px 0;
     }
+   
   </style>
 </head>
 <body>
-
   <header>
-    
-<table class="header-table">
-  <tbody>
-    <tr>
-      <td><strong>Ciaros S.A.</strong></td>
-      <td class="header-contact">
-        <div>Email: contacto@ciaros.com</div>
-        <div>Tel: +593 7 456 7890</div>
-        <div>Dirección: Calle Ejemplo 456, Guayaquil, Ecuador</div>
-      </td>
-    </tr>
-  </tbody>
-</table>
+    <div>
+      <strong>Ciaros S.A.</strong>
+    </div>
+    <div class="header-contact">
+      <div>Email: contacto@ciaros.com</div>
+      <div>Tel: +593 7 456 7890</div>
+      <div>Dirección: Calle Ejemplo 456, Guayaquil, Ecuador</div>
+    </div>
   </header>
 
   <div class="title">Recuerde gestionar estos pendientes de sus clientes para que pueda cobrar 
@@ -188,6 +178,7 @@ sus comisiones</div>
   <div class="logo" style="text-align: center; margin-bottom: 20px;">
     <img src="https://i.imgur.com/njPPBti.png" alt="Logo">
   </div>
+
 
   <table class="datatable">
     <thead>
@@ -203,9 +194,10 @@ sus comisiones</div>
       </tr>
     </thead>
     <tbody>
-      ${rows.join("")}
+  ${rows.join("")}
     </tbody>
   </table>
+
 
   <footer>
     <div class="footer-contact">
