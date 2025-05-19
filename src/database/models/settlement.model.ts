@@ -12,13 +12,14 @@ export const model = (sequelize: any, DataTypes: any) => {
           "Pre Liquidacion",
           "Negocio pendiente por liberar",
           "Negocio pendiente por facturar",
-          "Consolidado"
+          "Consolidado",
+          "Archivado"
         ),
         defaultValue: 'Pre Liquidacion',
         allowNull: false,
       },
       estado: {
-        type: DataTypes.ENUM("Emitida", "Lista", "Por Facturar", "Por Liberar"),
+        type: DataTypes.ENUM("Emitida", "Lista", "Por Facturar", "Por Liberar", "Archivada"),
         defaultValue: 'Emitida',
         allowNull: false,
       },

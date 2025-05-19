@@ -12,7 +12,6 @@ import {
   ISettlement,
   ISettlementExport,
   KanbanStates,
-  LiquidacionStates,
   LiquidacionTypes,
 } from "../interfaces/settlement.interface";
 import { generateAgentCode } from "../utils/code";
@@ -22,11 +21,6 @@ import { Sequelize } from "sequelize";
 import { getLiquidationTemplate } from "../templates/liquidation.template";
 import { getTextTemplate } from "../templates/text.template";
 import { generatePDF } from "../utils/generator";
-import { CreateOptions } from "html-pdf";
-import PDF from "html-pdf";
-import fs from "fs/promises";
-import { html2pdf, HTML2PDFOptions } from "html2pdf-ts";
-import path from "path";
 import { Op } from "sequelize";
 
 export class SettlementController {
@@ -356,9 +350,18 @@ export class SettlementController {
       } else {
         payouts = await Liquidaciones.findAll({
           where: {
-            FinalizadaNumeroLiquidacion: {
-              [Op.not]: null,
-            },
+            [Op.and]: [
+              {
+                FinalizadaNumeroLiquidacion: {
+                  [Op.not]: null,
+                },
+              },
+              {
+                estado: {
+                  [Op.not]: "Archivada",
+                },
+              },
+            ],
           },
           include: [
             {
@@ -499,6 +502,7 @@ export class SettlementController {
         LiquidacionTypes.NEGOCIO_PENDIENTE,
         LiquidacionTypes.NEGOCIO_LIBERADO,
         LiquidacionTypes.CONSOLIDADO,
+        LiquidacionTypes.ARCHIVADO,
       ];
 
       // Verifica si el tipo proporcionado es válido
@@ -507,16 +511,55 @@ export class SettlementController {
         return;
       }
 
-      const payouts = await Liquidaciones.findAll({
-        where: { tipo: type },
-        include: [
-          {
-            model: Clientes, // Modelo de Clientes
-            required: false, // `false` para LEFT JOIN, `true` para INNER JOIN
-          },
-        ],
-        order: [["fecha_vence", "DESC"]], // Ordena por fecha_vence de forma ascendente
-      });
+      const full = req.query.full;
+      let payouts;
+      if (full) {
+        payouts = await Finalizadas.findAll({
+          where: { kanban: "Archivada" },
+          order: [["fecha_pago", "DESC"]],
+        });
+      } else {
+        if (type == LiquidacionTypes.CONSOLIDADO) {
+          payouts = await Liquidaciones.findAll({
+            where: {
+              [Op.and]: [
+                {
+                  tipo: {
+                    [Op.not]: "Negocio pendiente por liberar",
+                  },
+                },
+                {
+                  tipo: {
+                    [Op.not]: "Archivado",
+                  },
+                },
+              ],
+            },
+            include: [
+              {
+                model: Clientes, // Modelo de Clientes
+                required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
+              },
+              {
+                model: Finalizadas, // Modelo de Clientes
+                required: false, // `false` para LEFT JOIN, `true` para INNER JOIN
+              },
+            ],
+            order: [["fecha_vence", "DESC"]],
+          });
+        } else {
+          payouts = await Liquidaciones.findAll({
+            where: { tipo: type },
+            include: [
+              {
+                model: Clientes, // Modelo de Clientes
+                required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
+              },
+            ],
+            order: [["fecha_vence", "DESC"]],
+          });
+        }
+      }
       if (!payouts) {
         res
           .status(404)
@@ -555,13 +598,35 @@ export class SettlementController {
 
   async updateStatusById(req: Request, res: Response): Promise<void> {
     try {
-      const status = req.body.status;
+      const { status } = req.body;
       // Extraer IDs desde query
       const liq_number = req.query.id;
 
       // Si viene un solo ID, convertirlo en array
       if (!liq_number) {
-        res.status(400).json({ message: "No se proporcionaron IDs." });
+        if (status != KanbanStates.ARCHIVADA) {
+          res.status(400).json({ message: "No se proporcionaron IDs." });
+          return;
+        }
+      }
+
+      if (status == KanbanStates.ARCHIVADA) {
+        const date = req.body.date;
+        const clusters = await Finalizadas.findAll({
+          where: { kanban: "Pagada" },
+        });
+        const ids = clusters.map((c) => c.dataValues.numero_liquidacion);
+        await Liquidaciones.update(
+          { estado: "Archivada", tipo: "Archivado" },
+          { where: { FinalizadaNumeroLiquidacion: [ids] } }
+        );
+        await Finalizadas.update(
+          { fecha_pago: date, kanban: status },
+          { where: { kanban: "Pagada" } }
+        );
+        res
+          .status(200)
+          .json({ message: "Liquidación archivada correctamente" });
         return;
       }
 
@@ -667,7 +732,7 @@ export class SettlementController {
     try {
       const payouts = await Liquidaciones.findAll({
         where: {
-          tipo: LiquidacionTypes.NEGOCIO_PENDIENTE
+          tipo: LiquidacionTypes.NEGOCIO_PENDIENTE,
         },
         include: [
           {

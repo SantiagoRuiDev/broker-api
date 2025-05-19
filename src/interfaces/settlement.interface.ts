@@ -72,6 +72,7 @@ export enum LiquidacionTypes {
   NEGOCIO_PENDIENTE = "Negocio pendiente por liberar",
   NEGOCIO_LIBERADO = "Negocio pendiente por facturar",
   CONSOLIDADO = "Consolidado",
+  ARCHIVADO = "Archivado"
 }
 
 export enum LiquidacionStates {
@@ -79,6 +80,7 @@ export enum LiquidacionStates {
   LISTA = "Lista",
   POR_FACTURAR = "Por Facturar",
   POR_LIBERAR = "Por Liberar",
+  ARCHIVADA = "Archivada"
 }
 
 export enum KanbanStates {
@@ -86,4 +88,5 @@ export enum KanbanStates {
   LISTA = "Lista",
   ENVIADA = "Enviada",
   PAGADA = "Pagada",
+  ARCHIVADA = "Archivada"
 }
