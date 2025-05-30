@@ -527,12 +527,7 @@ export class SettlementController {
                   tipo: {
                     [Op.not]: "Negocio pendiente por liberar",
                   },
-                },
-                {
-                  tipo: {
-                    [Op.not]: "Archivado",
-                  },
-                },
+                }
               ],
             },
             include: [
