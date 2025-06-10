@@ -1,30 +1,26 @@
 export const model = (sequelize: any, DataTypes: any) => {
     sequelize.define(
-      "Aseguradoras",
+      "Ramos",
       {
         id: {
           type: DataTypes.UUID,
           defaultValue: DataTypes.UUIDV4,
           primaryKey: true,
         },
-        ruc: {
+        nombre_ramo: {
           type: DataTypes.STRING,
           allowNull: false,
         },
-        nombre: {
-          type: DataTypes.STRING,
-          allowNull: false,
-        },
-        correo: {
+        codigo_ramo: {
           type: DataTypes.STRING,
           allowNull: false,
           unique: true,
         },
-        direccion: {
+        nombre_ramo_cia: {
           type: DataTypes.STRING,
           allowNull: true,
         },
-        contrato: {
+        codigo_ramo_cia: {
           type: DataTypes.STRING,
           allowNull: true,
         }

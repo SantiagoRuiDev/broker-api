@@ -15,12 +15,18 @@ export const model = (sequelize: any, DataTypes: any) => {
           "Consolidado",
           "Archivado"
         ),
-        defaultValue: 'Pre Liquidacion',
+        defaultValue: "Pre Liquidacion",
         allowNull: false,
       },
       estado: {
-        type: DataTypes.ENUM("Emitida", "Lista", "Por Facturar", "Por Liberar", "Archivada"),
-        defaultValue: 'Emitida',
+        type: DataTypes.ENUM(
+          "Emitida",
+          "Lista",
+          "Por Facturar",
+          "Por Liberar",
+          "Archivada"
+        ),
+        defaultValue: "Emitida",
         allowNull: false,
       },
       factura: {
@@ -86,6 +92,11 @@ export const model = (sequelize: any, DataTypes: any) => {
       P: {
         type: DataTypes.STRING,
         allowNull: true,
+      },
+      fecha_importacion: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
       },
       Notas: {
         type: DataTypes.STRING,

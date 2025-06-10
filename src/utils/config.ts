@@ -16,4 +16,5 @@ export default {
   DB_PASS: isProduction ? process.env.DB_PASS_PROD : process.env.DB_PASS_DEV,
   DB_NAME: isProduction ? process.env.DB_NAME_PROD : process.env.DB_NAME_DEV,
   DB_PORT: Number(isProduction ? process.env.DB_PORT_PROD : process.env.DB_PORT_DEV),
+  BROKER_CODE: process.env.BROKER_CODE || "0000",
 };

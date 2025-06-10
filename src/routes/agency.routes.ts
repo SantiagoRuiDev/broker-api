@@ -17,5 +17,9 @@ router.get("/", agencyController.getAgencies.bind(agencyController));
 router.post("/subsidiary/:id", agencyController.addSubsidiary.bind(agencyController));
 router.delete("/subsidiary/:id", agencyController.removeSubsidiary.bind(agencyController));
 router.get("/subsidiary/:id", agencyController.getSubsidiaries.bind(agencyController));
+router.get("/report-svcs", agencyController.getReportSVCS.bind(agencyController));
+router.get("/codes", agencyController.getAgencyCodes.bind(agencyController));
+router.post("/codes", agencyController.createCode.bind(agencyController));
+router.put("/codes/:id", agencyController.updateCode.bind(agencyController));
 
 export default router;

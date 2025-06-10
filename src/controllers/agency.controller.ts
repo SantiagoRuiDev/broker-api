@@ -1,6 +1,20 @@
 import { Request, Response } from "express";
-import { Aseguradoras, Sucursales } from "../database/connection";
+import {
+  Aseguradoras,
+  Clientes,
+  Liquidaciones,
+  Ramos,
+  Sucursales,
+} from "../database/connection";
 import { v4 as uuidv4 } from "uuid";
+import { getReportTemplate } from "../templates/report.template";
+import { Op } from "sequelize";
+import {
+  IReportRow,
+  LiquidacionStates,
+  LiquidacionTypes,
+} from "../interfaces/settlement.interface";
+import config from "../utils/config";
 
 export class AgencyController {
   constructor() {}
@@ -52,12 +66,151 @@ export class AgencyController {
     }
   }
 
+  async createCode(req: Request, res: Response): Promise<void> {
+    try {
+      const alreadyExist = await Ramos.findOne({
+        where: {
+          AseguradoraId: req.body.AseguradoraId,
+          codigo_ramo: req.body.codigo_ramo,
+        },
+      });
+      if (alreadyExist)
+        throw new Error(
+          "Esta aseguradora ya tiene un codigo ramo con la misma referencia."
+        );
+
+      await Ramos.create({
+        id: uuidv4(),
+        ...req.body,
+      });
+
+      res.status(200).json({ message: "Codigo ramo agregado exitosamente" });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+
+  async updateCode(req: Request, res: Response): Promise<void> {
+    try {
+      const codeExist = await Ramos.findOne({
+        where: {
+          id: req.params.id,
+        },
+      });
+      if (codeExist) {
+        const schema = req.body;
+        await codeExist.update(schema);
+      }
+
+      res.status(200).json({ message: "Codigo ramo actualizado exitosamente" });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+
+  async getAgencyCodes(req: Request, res: Response): Promise<void> {
+    try {
+      const agency_codes = await Ramos.findAll({
+        include: [{ model: Aseguradoras, required: true }],
+      });
+      if (!agency_codes) {
+        res.status(404).json({ message: "No encontramos codigos ramo" });
+        return;
+      }
+      res.status(200).json(agency_codes);
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+
   async getSubsidiaries(req: Request, res: Response): Promise<void> {
     try {
       const subsidiaries = await Sucursales.findAll({
         where: { AseguradoraId: req.params.id },
       });
       res.status(200).json(subsidiaries);
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  }
+
+  async getReportSVCS(req: Request, res: Response): Promise<void> {
+    try {
+      /**
+       * Buscar todas las liquidaciones realizadas a empresas de seguros en el año.
+       * Solo aquellos negocios que sean validos pre-liquidaciones, pendientes por liberar y liquidados.
+       * Por cada empresa se calculara la prima neta y total de comisiones cobradas
+       * Traducir el codigo ramo de cada empresa por el codigo supercia.
+       */
+      // Rango de fechas: desde 1 año atrás hasta hoy
+      const today = new Date();
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(today.getFullYear() - 1);
+      const payouts = await Liquidaciones.findAll({
+        where: {
+          fecha_importacion: {
+            [Op.between]: [oneYearAgo, today],
+          },
+          tipo: {
+            [Op.in]: [
+              LiquidacionTypes.ARCHIVADO,
+              LiquidacionTypes.CONSOLIDADO,
+              LiquidacionTypes.NEGOCIO_LIBERADO,
+              LiquidacionTypes.PRE_LIQUIDACIONES,
+            ],
+          },
+        },
+        include: [
+          {
+            model: Aseguradoras,
+            required: true,
+          },
+        ],
+      });
+
+      const report_row: IReportRow[] = [];
+
+      for (const payout of payouts) {
+        const raw_code = payout.dataValues.poliza.split("-")[0];
+        const alreadyExist = report_row.find(
+          (row) => (row.ruc_aseguradora = payout.dataValues.Aseguradora.ruc)
+        );
+        if (alreadyExist) {
+          if (alreadyExist.codigo_ramo == raw_code) {
+            alreadyExist.valor_prima += payout.dataValues.valor_prima;
+            alreadyExist.comision += payout.dataValues.comision;
+            continue;
+          }
+        }
+
+        report_row.push({
+          ruc_aseguradora: payout.dataValues.Aseguradora.ruc,
+          codigo_ramo: raw_code,
+          comision: payout.dataValues.comision,
+          valor_prima: payout.dataValues.valor_prima,
+        });
+      }
+
+      const day = String(today.getDate()).padStart(2, "0");
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const year = today.getFullYear();
+
+      const filename =
+        "I01A" + config.BROKER_CODE + day + "" + month + "" + year;
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="' + filename + '"'
+      );
+      res.setHeader("Content-Type", "text/plain");
+      res.status(200).send(await getReportTemplate(report_row, today));
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

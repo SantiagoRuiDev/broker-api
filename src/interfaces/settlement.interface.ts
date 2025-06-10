@@ -58,6 +58,13 @@ export interface ISettlementMapped {
   Finalizada?: IFinished;
 }
 
+export interface IReportRow {
+  ruc_aseguradora: string;
+  codigo_ramo: string;
+  valor_prima: number;
+  comision: number;
+}
+
 export interface ISettlementExport {
   codigo_agente: string;
   liquidaciones: ISettlementMapped[];
