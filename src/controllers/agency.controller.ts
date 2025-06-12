@@ -176,22 +176,29 @@ export class AgencyController {
         ],
       });
 
+      const agency_codes = await Ramos.findAll({
+        include: [{ model: Aseguradoras, required: true }],
+      });
+
       const report_row: IReportRow[] = [];
 
       for (const payout of payouts) {
         const raw_code = payout.dataValues.poliza.split("-")[0];
+        const final_code = agency_codes.find((c) => c.dataValues.codigo_ramo == raw_code && c.dataValues.Aseguradora.ruc == payout.dataValues.ruc_aseguradora)?.dataValues.codigo_ramo_cia;
         const alreadyExist = report_row.find(
-          (row) => (row.ruc_aseguradora == payout.dataValues.Aseguradora.ruc && row.codigo_ramo == raw_code)
+          (row) =>
+            row.ruc_aseguradora == payout.dataValues.Aseguradora.ruc &&
+            row.codigo_ramo == final_code
         );
         if (alreadyExist) {
-            alreadyExist.valor_prima += payout.dataValues.valor_prima;
-            alreadyExist.comision += payout.dataValues.comision;
-            continue;
+          alreadyExist.valor_prima += payout.dataValues.valor_prima;
+          alreadyExist.comision += payout.dataValues.comision;
+          continue;
         }
 
         report_row.push({
           ruc_aseguradora: payout.dataValues.Aseguradora.ruc,
-          codigo_ramo: raw_code,
+          codigo_ramo: final_code,
           comision: payout.dataValues.comision,
           valor_prima: payout.dataValues.valor_prima,
         });
@@ -201,7 +208,9 @@ export class AgencyController {
       const month = String(today.getMonth() + 1).padStart(2, "0");
       const year = today.getFullYear();
 
-      report_row.sort((a, b) => a.ruc_aseguradora.localeCompare(b.ruc_aseguradora));
+      report_row.sort((a, b) =>
+        a.ruc_aseguradora.localeCompare(b.ruc_aseguradora)
+      );
 
       const filename =
         "I01A" + config.BROKER_CODE + day + "" + month + "" + year;
