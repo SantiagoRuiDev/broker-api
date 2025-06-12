@@ -181,14 +181,12 @@ export class AgencyController {
       for (const payout of payouts) {
         const raw_code = payout.dataValues.poliza.split("-")[0];
         const alreadyExist = report_row.find(
-          (row) => (row.ruc_aseguradora = payout.dataValues.Aseguradora.ruc)
+          (row) => (row.ruc_aseguradora == payout.dataValues.Aseguradora.ruc && row.codigo_ramo == raw_code)
         );
         if (alreadyExist) {
-          if (alreadyExist.codigo_ramo == raw_code) {
             alreadyExist.valor_prima += payout.dataValues.valor_prima;
             alreadyExist.comision += payout.dataValues.comision;
             continue;
-          }
         }
 
         report_row.push({
@@ -202,6 +200,8 @@ export class AgencyController {
       const day = String(today.getDate()).padStart(2, "0");
       const month = String(today.getMonth() + 1).padStart(2, "0");
       const year = today.getFullYear();
+
+      report_row.sort((a, b) => a.ruc_aseguradora.localeCompare(b.ruc_aseguradora));
 
       const filename =
         "I01A" + config.BROKER_CODE + day + "" + month + "" + year;

@@ -34,9 +34,9 @@ export const getReportTemplate = async (rows: IReportRow[], today: Date) => {
           code.dataValues.Aseguradora.ruc == row.ruc_aseguradora
       )?.dataValues.codigo_ramo_cia +
       "   " +
-      row.valor_prima +
+      row.valor_prima.toFixed(2) +
       "   " +
-      row.comision +
+      row.comision.toFixed(2) +
       "\n";
   }
 

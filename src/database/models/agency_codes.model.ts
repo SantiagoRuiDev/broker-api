@@ -14,7 +14,6 @@ export const model = (sequelize: any, DataTypes: any) => {
         codigo_ramo: {
           type: DataTypes.STRING,
           allowNull: false,
-          unique: true,
         },
         nombre_ramo_cia: {
           type: DataTypes.STRING,
