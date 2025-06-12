@@ -142,7 +142,7 @@ export class AgencyController {
     }
   }
 
-  async getReportSVCS(req: Request, res: Response): Promise<void> {
+async getReportSVCS(req: Request, res: Response): Promise<void> {
     try {
       /**
        * Buscar todas las liquidaciones realizadas a empresas de seguros en el año.
@@ -184,7 +184,8 @@ export class AgencyController {
 
       for (const payout of payouts) {
         const raw_code = payout.dataValues.poliza.split("-")[0];
-        const final_code = agency_codes.find((c) => c.dataValues.codigo_ramo == raw_code && c.dataValues.Aseguradora.ruc == payout.dataValues.ruc_aseguradora)?.dataValues.codigo_ramo_cia;
+        const final_code = agency_codes.find((code) => code.dataValues.codigo_ramo == raw_code && code.dataValues.Aseguradora.ruc == payout.dataValues.Aseguradora.ruc)?.dataValues.codigo_ramo_cia;
+
         const alreadyExist = report_row.find(
           (row) =>
             row.ruc_aseguradora == payout.dataValues.Aseguradora.ruc &&
