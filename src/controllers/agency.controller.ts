@@ -163,7 +163,6 @@ async getReportSVCS(req: Request, res: Response): Promise<void> {
             [Op.in]: [
               LiquidacionTypes.ARCHIVADO,
               LiquidacionTypes.CONSOLIDADO,
-              LiquidacionTypes.NEGOCIO_LIBERADO,
               LiquidacionTypes.PRE_LIQUIDACIONES,
             ],
           },
