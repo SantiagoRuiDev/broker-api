@@ -15,6 +15,7 @@ import {
   LiquidacionTypes,
 } from "../interfaces/settlement.interface";
 import config from "../utils/config";
+import { isStringObject } from "util/types";
 
 export class AgencyController {
   constructor() {}
@@ -151,12 +152,20 @@ async getReportSVCS(req: Request, res: Response): Promise<void> {
        * Traducir el codigo ramo de cada empresa por el codigo supercia.
        */
       // Rango de fechas: desde 1 año atrás hasta hoy
-      const min_date = new Date();
-      min_date.setDate(1);
-      min_date.setMonth(0);
-      const max_date = new Date();
-      max_date.setDate(31);
-      max_date.setMonth(11);
+      const { from, to } = req.query;
+      let min_date = new Date();
+      min_date.setMonth(0, 1);
+      let max_date = new Date();
+      max_date.setMonth(11, 31);
+
+      if(from){
+        min_date = new Date(from.toString());
+        min_date.setDate(min_date.getDate() + 1);
+      }
+      if(to){
+        max_date = new Date(to.toString());
+        max_date.setDate(max_date.getDate() + 1);
+      }
       const payouts = await Liquidaciones.findAll({
         where: {
           fecha_importacion: {
