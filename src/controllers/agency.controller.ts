@@ -151,13 +151,16 @@ async getReportSVCS(req: Request, res: Response): Promise<void> {
        * Traducir el codigo ramo de cada empresa por el codigo supercia.
        */
       // Rango de fechas: desde 1 año atrás hasta hoy
-      const today = new Date();
-      const oneYearAgo = new Date();
-      oneYearAgo.setFullYear(today.getFullYear() - 1);
+      const min_date = new Date();
+      min_date.setDate(1);
+      min_date.setMonth(0);
+      const max_date = new Date();
+      max_date.setDate(31);
+      max_date.setMonth(11);
       const payouts = await Liquidaciones.findAll({
         where: {
           fecha_importacion: {
-            [Op.between]: [oneYearAgo, today],
+            [Op.between]: [min_date, max_date],
           },
           tipo: {
             [Op.in]: [
@@ -204,9 +207,9 @@ async getReportSVCS(req: Request, res: Response): Promise<void> {
         });
       }
 
-      const day = String(today.getDate()).padStart(2, "0");
-      const month = String(today.getMonth() + 1).padStart(2, "0");
-      const year = today.getFullYear();
+      const day = String(max_date.getDate()).padStart(2, "0");
+      const month = String(max_date.getMonth() + 1).padStart(2, "0");
+      const year = max_date.getFullYear();
 
       report_row.sort((a, b) =>
         a.ruc_aseguradora.localeCompare(b.ruc_aseguradora)
@@ -219,7 +222,7 @@ async getReportSVCS(req: Request, res: Response): Promise<void> {
         'attachment; filename="' + filename + '"'
       );
       res.setHeader("Content-Type", "text/plain");
-      res.status(200).send(await getReportTemplate(report_row, today));
+      res.status(200).send(await getReportTemplate(report_row, max_date));
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
