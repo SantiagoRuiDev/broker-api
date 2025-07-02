@@ -12,6 +12,7 @@ import {
   ISettlement,
   ISettlementExport,
   KanbanStates,
+  LiquidacionStates,
   LiquidacionTypes,
 } from "../interfaces/settlement.interface";
 import { generateAgentCode } from "../utils/code";
@@ -22,6 +23,7 @@ import { getLiquidationTemplate } from "../templates/liquidation.template";
 import { getTextTemplate } from "../templates/text.template";
 import { generatePDF } from "../utils/generator";
 import { Op } from "sequelize";
+import { Calc } from "../utils/calc";
 
 export class SettlementController {
   constructor() {}
@@ -156,19 +158,22 @@ export class SettlementController {
         });
 
         for (const settlement of filteredData) {
-          if (settlement.SAge) {
+          if (String(settlement.SAge).trim() != "") {
             const exists = agents.some(
               (agent) => agent.dataValues.codigo === settlement.SAge
             );
             if (!exists) {
+              let tempCode = settlement.SAge;
               await Subagentes.create({
-                codigo: settlement.SAge,
+                codigo: tempCode,
                 estatus: "Activo",
                 rol: "Subagente",
               });
               agents = await Subagentes.findAll();
+              settlement.SubagenteCodigo = tempCode;
+            } else {
+              settlement.SubagenteCodigo = settlement.SAge;
             }
-            settlement.SubagenteCodigo = settlement.SAge;
           } else {
             const tempCode = generateAgentCode();
             await Subagentes.create({
@@ -180,7 +185,6 @@ export class SettlementController {
             settlement.SubagenteCodigo = tempCode;
           }
         }
-
         await Liquidaciones.bulkCreate(filteredData);
       }
 
@@ -205,19 +209,22 @@ export class SettlementController {
         );
 
         for (const settlement of filteredData) {
-          if (settlement.SAge) {
+          if (String(settlement.SAge).trim() != "") {
             const exists = agents.some(
               (agent) => agent.dataValues.codigo === settlement.SAge
             );
             if (!exists) {
+              let tempCode = settlement.SAge;
               await Subagentes.create({
-                codigo: settlement.SAge,
+                codigo: tempCode,
                 estatus: "Activo",
                 rol: "Subagente",
               });
               agents = await Subagentes.findAll();
+              settlement.SubagenteCodigo = tempCode;
+            } else {
+              settlement.SubagenteCodigo = settlement.SAge;
             }
-            settlement.SubagenteCodigo = settlement.SAge;
           } else {
             const tempCode = generateAgentCode();
             await Subagentes.create({
@@ -328,9 +335,35 @@ export class SettlementController {
 
   async getPayouts(req: Request, res: Response): Promise<void> {
     try {
-      const { finished } = req.query;
+      const { finished, cluster } = req.query;
       let payouts: any[] = [];
-      if (!finished) {
+
+      if (cluster) {
+        payouts = await Liquidaciones.findAll({
+          where: {
+            FinalizadaNumeroLiquidacion: cluster,
+          },
+          include: [
+            {
+              model: Clientes, // Modelo de Clientes
+              required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
+            },
+            {
+              model: Subagentes,
+              required: true,
+            },
+            {
+              model: Finalizadas,
+              required: true,
+            },
+          ],
+        });
+        if (!payouts) {
+          res.status(404).json({ message: "No encontramos Liquidaciones" });
+          return;
+        }
+      }
+      if (!finished && !cluster) {
         payouts = await Liquidaciones.findAll({
           include: [
             {
@@ -441,6 +474,7 @@ export class SettlementController {
           ret_renta: ret_renta,
           gastos_adm: gastos_adm,
           tarifa_comision: tarifa_comision,
+          SubagenteCodigo: agent_code,
         });
       }
 
@@ -516,6 +550,7 @@ export class SettlementController {
       if (full) {
         payouts = await Finalizadas.findAll({
           where: { kanban: "Archivada" },
+          include: [{ model: Subagentes, required: true }],
           order: [["fecha_pago", "DESC"]],
         });
       } else {
@@ -527,10 +562,14 @@ export class SettlementController {
                   tipo: {
                     [Op.not]: "Negocio pendiente por liberar",
                   },
-                }
+                },
               ],
             },
             include: [
+              {
+                model: Aseguradoras, // Modelo de Clientes
+                required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
+              },
               {
                 model: Clientes, // Modelo de Clientes
                 required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
@@ -546,6 +585,10 @@ export class SettlementController {
           payouts = await Liquidaciones.findAll({
             where: { tipo: type },
             include: [
+              {
+                model: Aseguradoras, // Modelo de Clientes
+                required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
+              },
               {
                 model: Clientes, // Modelo de Clientes
                 required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
@@ -578,6 +621,41 @@ export class SettlementController {
         where: { id: uuid },
       });
       if (!settlementExist) throw new Error("Esta liquidación no existe");
+
+      if (settlementExist.dataValues.comision != payout.comision) {
+        const alreadyLiquidated =
+          settlementExist.dataValues.FinalizadaNumeroLiquidacion;
+        if (alreadyLiquidated) {
+          await settlementExist.update(payout);
+          const settlements = await Liquidaciones.findAll({
+            where: { FinalizadaNumeroLiquidacion: alreadyLiquidated },
+          });
+          const cluster = await Finalizadas.findOne({
+            where: { numero_liquidacion: alreadyLiquidated },
+          });
+          if (cluster) {
+            const { dataValues } = cluster;
+            const calculator = new Calc(
+              dataValues.iva,
+              dataValues.tarifa_comision,
+              dataValues.ret_renta,
+              dataValues.ret_iva,
+              dataValues.gastos_adm,
+              dataValues.prestamo,
+              settlements.map((s) => s.dataValues)
+            );
+            await cluster.update(
+              { total_liquidado: calculator.calcTotal() },
+              { where: { FinalizadaNumeroLiquidacion: alreadyLiquidated } }
+            );
+          }
+
+          res
+            .status(200)
+            .json({ message: "Cluster actualizado correctamente" });
+          return;
+        }
+      }
 
       await settlementExist.update(payout);
 
@@ -658,11 +736,8 @@ export class SettlementController {
         }
 
         const filename =
-          String(liq_number).split("/")[0] +
-          " " +
-          String(liq.dataValues.Subagente.nombres).toUpperCase() +
-          " " +
-          String(liq.dataValues.Subagente.apellidos).toUpperCase();
+        String(String(liq.dataValues.FinalizadaNumeroLiquidacion).split('/')[0]).padStart(2, '0') +
+        String(liq.dataValues.Subagente.nombres).toUpperCase() + String(liq.dataValues.Subagente.apellidos).toUpperCase();
         const config = await Configuracion.findOne({
           where: { id: "CONFIGURACION" },
         });
@@ -711,7 +786,57 @@ export class SettlementController {
       const settlementExist = await Liquidaciones.findOne({
         where: { id: uuid },
       });
+
       if (!settlementExist) throw new Error("Esta liquidación no existe");
+
+      const alreadyLiquidated =
+        settlementExist.dataValues.FinalizadaNumeroLiquidacion;
+      if (alreadyLiquidated) {
+        // Si el negocio fue liquidado.
+        await settlementExist.update({
+          estado: LiquidacionStates.LISTA,
+          tipo: LiquidacionTypes.PRE_LIQUIDACIONES,
+          FinalizadaNumeroLiquidacion: null,
+        });
+        const cluster = await Finalizadas.findOne({
+          where: { numero_liquidacion: alreadyLiquidated },
+        });
+        if (cluster) {
+          const { dataValues } = cluster;
+          const calculator: Calc = new Calc(
+            dataValues.iva,
+            dataValues.tarifa_comision,
+            dataValues.ret_renta,
+            dataValues.ret_iva,
+            dataValues.gastos_adm,
+            dataValues.prestamo,
+            [settlementExist.dataValues]
+          );
+
+          if (
+            dataValues.total_liquidado -
+              Calc.round(calculator.calcTotal(), 4) <=
+            0
+          ) {
+            // Si resto el total contra el total de la liquidacion eliminada y me da 0 significa que hay 1 sola.
+            await cluster.destroy();
+          } else {
+            // Caso contrario si hay un resto, debo recalcular el total-liquidado.
+            await cluster.update({
+              total_liquidado:
+                dataValues.total_liquidado -
+                Calc.round(calculator.calcTotal(), 4),
+            });
+          }
+          res
+            .status(201)
+            .json({
+              message:
+                "El negocio volvio a pre-liquidación y el kanban fue actualizado",
+            });
+          return;
+        }
+      }
 
       await settlementExist.destroy();
 
@@ -833,12 +958,10 @@ export class SettlementController {
       const config = await Configuracion.findOne({
         where: { id: "CONFIGURACION" },
       });
+      
       const filename =
-        String(liq.dataValues.FinalizadaNumeroLiquidacion).split("/")[0] +
-        " " +
-        String(liq.dataValues.Subagente.nombres).toUpperCase() +
-        " " +
-        String(liq.dataValues.Subagente.apellidos).toUpperCase();
+        String(String(liq.dataValues.FinalizadaNumeroLiquidacion).split('/')[0]).padStart(2, '0') +
+        String(liq.dataValues.Subagente.nombres).toUpperCase() + String(liq.dataValues.Subagente.apellidos).toUpperCase();
       res.setHeader(
         "Content-Disposition",
         'attachment; filename="' + filename + '"'
@@ -903,8 +1026,8 @@ export class SettlementController {
       }
 
       const filename =
-        "LIQUIDACION " +
-        String(payouts[0].dataValues.FinalizadaNumeroLiquidacion).split("/")[0];
+        String(String(payouts[0].dataValues.FinalizadaNumeroLiquidacion).split('/')[0]).padStart(2, '0') +
+        String(agent.dataValues.nombres).toUpperCase() + String(agent.dataValues.apellidos).toUpperCase();
 
       const pdfBuffer = await generatePDF(
         getLiquidationTemplate(payouts, agent.dataValues)

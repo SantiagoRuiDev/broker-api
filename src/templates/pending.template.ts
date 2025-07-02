@@ -19,7 +19,10 @@ export function getPendingTemplate(settlements: ISettlementMapped[]) {
     <td>${c.Cliente?.nombre}</td>
     <td>${formatUSD(c.valor_prima || 0)}</td>
     <td>${formatUSD(c.comision || 0)}</td>
-    <td>${formatUSD(((c.comision || 0) * fee) / 100)}</td>
+    <td>${c.ori}</td>
+    <td>${c.F}</td>
+    <td>${c.L}</td>
+    <td>${c.P}</td>
   </tr>`;
   });
 
@@ -29,7 +32,7 @@ export function getPendingTemplate(settlements: ISettlementMapped[]) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Liquidación - Ciaros S.A.</title>
+  <title>Negocio Pendiente - Ciaros S.A.</title>
   <style>
     * {
   box-sizing: border-box;
@@ -190,7 +193,10 @@ sus comisiones</div>
         <th>Cliente</th>
         <th>Prima Neta</th>
         <th>Comisión Ciaros</th>
-        <th>Comisión Subagente</th>
+        <th>Ori</th>
+        <th>F</th>
+        <th>L</th>
+        <th>P</th>
       </tr>
     </thead>
     <tbody>

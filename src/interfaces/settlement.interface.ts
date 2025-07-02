@@ -7,6 +7,7 @@ export interface ISettlement {
   id?: string;
   tipo: LiquidacionTypes;
   estado: LiquidacionStates;
+  factura_ciaros?: number;
   factura?: number;
   documento?: number;
   orden?: string;
@@ -21,6 +22,7 @@ export interface ISettlement {
   valor_prima?: number;
   comision?: number;
   FinalizadaNumeroLiquidacion?: string;
+  ori?: string;
   F?: string;
   L?: string;
   P?: string;
@@ -33,6 +35,7 @@ export interface ISettlementMapped {
   id?: string;
   tipo: LiquidacionTypes;
   estado: LiquidacionStates;
+  factura_ciaros?: number;
   factura?: number;
   documento?: number;
   orden?: string;
@@ -49,6 +52,7 @@ export interface ISettlementMapped {
   f_contab?: string;
   valor_prima?: number;
   comision?: number;
+  ori?: string;
   F?: string;
   L?: string;
   P?: string;

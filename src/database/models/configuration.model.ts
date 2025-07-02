@@ -27,6 +27,10 @@ export const model = (sequelize: any, DataTypes: any) => {
           type: DataTypes.STRING,
           allowNull: true,
         },
+        codigo_broker: {
+          type: DataTypes.STRING,
+          allowNull: true,
+        },
       },
       { updatedAt: false, timestamps: false }
     );

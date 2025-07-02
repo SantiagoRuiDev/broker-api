@@ -67,9 +67,9 @@ export function getLiquidationTemplate(payouts: any[], agent: IAgent) {
   const total = payouts[0].Finalizada.total_liquidado || 0;
 
   const liquidation_date = payouts[0].Finalizada.fecha_liquidacion;
-  const liquidation_number = String(payouts[0].Finalizada.numero_liquidacion).split(
-    "/"
-  )[0];
+  const liquidation_number = String(
+    payouts[0].Finalizada.numero_liquidacion
+  ).split("/")[0];
 
   const rows = payouts.map((c: ISettlementMapped) => {
     return `<tr>
@@ -91,7 +91,7 @@ export function getLiquidationTemplate(payouts: any[], agent: IAgent) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Liquidación - Ciaros S.A.</title>
+  <title>Liquidación ${liquidation_number} - Ciaros S.A.</title>
   <style>
     * {
   box-sizing: border-box;
@@ -204,10 +204,27 @@ html, body {
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
       font-size: 13px;
       margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+    	align-items: end;
+    }
+    
+    .subtotal-box {
+    	width: 100%;
+      border-radius: 12px;
+      padding: 0px 0px 0px 16px;
+      border: 2px solid #ccc;
+    }
+    .subtotal-box h1 {
+    	font-size: 18px;
     }
 
     .wide-summary div {
       margin-bottom: 6px;
+    }
+
+    .summary-box {
+    	width: 100%;
     }
 
     footer {
@@ -279,25 +296,30 @@ html, body {
   </table>
 
   <div class="wide-summary">
-    <div><strong>Contribución Supercias:</strong> ${formatUSD(
-      calcContribution(payouts, fee, contributon)
-    )}</div>
-    <div><strong>Subtotal Comisión:</strong> ${formatUSD(subtotal)}</div>
-    <div><strong>IVA:</strong> ${formatUSD(calcIva(subtotal, iva))}</div>
-    <div><strong>Retención IVA:</strong> ${formatUSD(
-      calcIvaRetention(subtotal, iva, ret_iva)
-    )}</div>
-    <div><strong>Retención Renta:</strong> ${formatUSD(
-      calcRent(subtotal, ret_rent)
-    )}</div>
-    <div><strong>Comisión Bruta:</strong> ${formatUSD(
-      subtotal - calcRent(subtotal, ret_rent)
-    )}</div>
-    <div><strong>Gastos Adm:</strong> ${formatUSD(adm_fee)}</div>
-    <div><strong>Préstamos:</strong> ${formatUSD(loan)}</div>
-    <div><strong>Total a Recibir:</strong> <strong style="color: green;">${formatUSD(
-      total
-    )}</strong></div>
+    <div class="summary-box">
+      <div><strong>Contribución Supercias:</strong> ${formatUSD(
+        calcContribution(payouts, fee, contributon)
+      )}</div>
+      <div><strong>Subtotal Comisión:</strong> ${formatUSD(subtotal)}</div>
+      <div><strong>IVA:</strong> ${formatUSD(calcIva(subtotal, iva))}</div>
+      <div><strong>Retención IVA:</strong> ${formatUSD(
+        calcIvaRetention(subtotal, iva, ret_iva)
+      )}</div>
+      <div><strong>Retención Renta:</strong> ${formatUSD(
+        calcRent(subtotal, ret_rent)
+      )}</div>
+      <div><strong>Comisión Bruta:</strong> ${formatUSD(
+        subtotal - calcRent(subtotal, ret_rent)
+      )}</div>
+      <div><strong>Gastos Adm:</strong> ${formatUSD(adm_fee)}</div>
+      <div><strong>Préstamos:</strong> ${formatUSD(loan)}</div>
+      <div><strong>Total a Recibir:</strong> <strong style="color: green;">${formatUSD(
+        total
+      )}</strong></div>
+    </div>
+    <div class="subtotal-box">
+      <h1>SUBTOTAL COMISIÓN: ${formatUSD(subtotal)}</h1>
+    </div>
   </div>
 
   <footer>

@@ -1,13 +1,12 @@
 import { IReportRow } from "../interfaces/settlement.interface";
-import config from "../utils/config";
 
-export const getReportTemplate = async (rows: IReportRow[], today: Date) => {
+export const getReportTemplate = async (rows: IReportRow[], today: Date, broker_code: string) => {
   const day = String(today.getDate()).padStart(2, "0");
   const month = String(today.getMonth() + 1).padStart(2, "0");
   const year = today.getFullYear();
   const first_line =
     "I01         " +
-    config.BROKER_CODE +
+    broker_code +
     "     " +
     day +
     "/" +

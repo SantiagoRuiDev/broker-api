@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import {
   Aseguradoras,
   Clientes,
+  Configuracion,
   Liquidaciones,
   Ramos,
   Sucursales,
@@ -224,14 +225,20 @@ async getReportSVCS(req: Request, res: Response): Promise<void> {
         a.ruc_aseguradora.localeCompare(b.ruc_aseguradora)
       );
 
+      const config = await Configuracion.findOne({
+        where: { id: "CONFIGURACION" },
+      });
+
+      const broker_code = config?.dataValues.codigo_broker;
+
       const filename =
-        "I01A" + config.BROKER_CODE + day + "" + month + "" + year;
+        "I01A" + broker_code + day + "" + month + "" + year;
       res.setHeader(
         "Content-Disposition",
         'attachment; filename="' + filename + '"'
       );
       res.setHeader("Content-Type", "text/plain");
-      res.status(200).send(await getReportTemplate(report_row, max_date));
+      res.status(200).send(await getReportTemplate(report_row, max_date, broker_code));
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

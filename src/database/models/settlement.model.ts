@@ -29,6 +29,10 @@ export const model = (sequelize: any, DataTypes: any) => {
         defaultValue: "Emitida",
         allowNull: false,
       },
+      factura_ciaros: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
       factura: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -79,6 +83,10 @@ export const model = (sequelize: any, DataTypes: any) => {
       },
       comision: {
         type: DataTypes.FLOAT,
+        allowNull: true,
+      },
+      ori: {
+        type: DataTypes.STRING,
         allowNull: true,
       },
       F: {

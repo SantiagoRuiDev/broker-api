@@ -63,6 +63,7 @@ export const {
 } = sequelize.models;
 
 Finalizadas.hasMany(Liquidaciones);
+Finalizadas.belongsTo(Subagentes);
 Subagentes.hasMany(Liquidaciones);
 Clientes.hasMany(Liquidaciones);
 Aseguradoras.hasMany(Sucursales);
