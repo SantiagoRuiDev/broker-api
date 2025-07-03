@@ -3,9 +3,9 @@ import puppeteer from "puppeteer";
 export async function generatePDF(html: string): Promise<Buffer> {
   const browser = await puppeteer.launch({
     headless: true,
-    defaultViewport: null,/*
+    defaultViewport: null,
     executablePath: '/usr/bin/google-chrome',
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--single-process', '--no-zygote'],*/
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--single-process', '--no-zygote'],
   });
 
   const page = await browser.newPage();

@@ -22,6 +22,7 @@ export class SettlementMiddleware {
 
       const payoutAlreadyExist = await Liquidaciones.findOne({
         where: {
+          factura: settlement.factura,
           endoso: settlement.endoso,
           documento: settlement.documento,
           poliza: settlement.poliza,
@@ -32,9 +33,7 @@ export class SettlementMiddleware {
       if (payoutAlreadyExist) {
         // Comprueba si el neg que ya existe es un negocio pendiente por liberar y puede convertirlo a pre-liquidación
         const data = payoutAlreadyExist.dataValues;
-        if (
-          data.factura_ciaros > 0
-        ) {
+        if (data.factura_ciaros > 0) {
           if ([data.F, data.L, data.P].filter((i) => i == "").length < 3) {
             if (fieldsLength == 0) {
               payoutAlreadyExist.set({
@@ -76,6 +75,9 @@ export class SettlementMiddleware {
         );
       }
 
+      if (settlement.factura == 0) {
+        throw new Error("Porfavor, completa el campo factura");
+      }
       if (settlement.fecha_vence == "") {
         throw new Error("Porfavor, completa el campo fecha de vencimiento");
       }
@@ -102,8 +104,18 @@ export class SettlementMiddleware {
       }
 
       if (settlement.factura_ciaros == 0) {
-        settlement.tipo = LiquidacionTypes.NEGOCIO_LIBERADO;
-        settlement.estado = LiquidacionStates.POR_FACTURAR;
+        if (fieldsLength == 0) {
+          if (String(settlement.ori).includes("PXC")) {
+            settlement.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
+            settlement.estado = LiquidacionStates.POR_LIBERAR;
+          } else {
+            settlement.tipo = LiquidacionTypes.NEGOCIO_LIBERADO;
+            settlement.estado = LiquidacionStates.POR_FACTURAR;
+          }
+        } else {
+          settlement.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
+          settlement.estado = LiquidacionStates.POR_LIBERAR;
+        }
       } else {
         if (fieldsLength == 0) {
           settlement.tipo = LiquidacionTypes.PRE_LIQUIDACIONES;
@@ -152,6 +164,7 @@ export class SettlementMiddleware {
 
         const payoutAlreadyExist = await Liquidaciones.findOne({
           where: {
+            factura: payout.factura,
             endoso: payout.endoso,
             documento: payout.documento,
             poliza: payout.poliza,
@@ -162,9 +175,7 @@ export class SettlementMiddleware {
         if (payoutAlreadyExist) {
           // Comprueba si el neg que ya existe es un negocio pendiente por liberar y puede convertirlo a pre-liquidación
           const data = payoutAlreadyExist.dataValues;
-          if (
-            data.factura_ciaros > 0
-          ) {
+          if (data.factura_ciaros > 0) {
             if ([data.F, data.L, data.P].filter((i) => i == "").length < 3) {
               if (fieldsLength == 0) {
                 payoutAlreadyExist.set({
@@ -227,6 +238,9 @@ export class SettlementMiddleware {
           });
         }
 
+        if (payout.factura == 0) {
+          errors.push({ index: i, field: "Factura", fill: true });
+        }
         if (payout.fecha_vence == "") {
           errors.push({ index: i, field: "Fecha vencimiento", fill: true });
         }
@@ -273,24 +287,27 @@ export class SettlementMiddleware {
           payout.factura_ciaros == 0 ||
           String(payout.factura_ciaros).trim() == ""
         ) {
-          // Si los campos estan completos y no tiene numero de factura
-          payout.tipo = LiquidacionTypes.NEGOCIO_LIBERADO;
-          payout.estado = LiquidacionStates.POR_FACTURAR;
-        } else {
-          if (payout.ori && String(payout.ori).includes("PXC")) {
-            // Todas las S y no esta PXC
-            payout.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
-            payout.estado = LiquidacionStates.POR_LIBERAR;
-          } else {
-            if (fieldsLength == 0) {
-              // Si los campos estan completos y tiene numero de factura
-              payout.tipo = LiquidacionTypes.PRE_LIQUIDACIONES;
-              payout.estado = LiquidacionStates.LISTA;
-            } else {
-              // Si los campos estan incompletos y tiene numero de factura
+          if (fieldsLength == 0) {
+            if (payout.ori && String(payout.ori).includes("PXC")) {
               payout.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
               payout.estado = LiquidacionStates.POR_LIBERAR;
+            } else {
+              payout.tipo = LiquidacionTypes.NEGOCIO_LIBERADO;
+              payout.estado = LiquidacionStates.POR_FACTURAR;
             }
+          } else {
+            payout.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
+            payout.estado = LiquidacionStates.POR_LIBERAR;
+          }
+        } else {
+          if (fieldsLength == 0) {
+            // Si los campos estan completos y tiene numero de factura
+            payout.tipo = LiquidacionTypes.PRE_LIQUIDACIONES;
+            payout.estado = LiquidacionStates.LISTA;
+          } else {
+            // Si los campos estan incompletos y tiene numero de factura
+            payout.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
+            payout.estado = LiquidacionStates.POR_LIBERAR;
           }
         }
       }
@@ -304,6 +321,7 @@ export class SettlementMiddleware {
 
         const payoutAlreadyExist = await Liquidaciones.findOne({
           where: {
+            factura: payout.factura,
             endoso: payout.endoso,
             documento: payout.documento,
             poliza: payout.poliza,
@@ -314,9 +332,7 @@ export class SettlementMiddleware {
         if (payoutAlreadyExist) {
           // Comprueba si el neg que ya existe es un negocio pendiente por liberar y puede convertirlo a pre-liquidación
           const data = payoutAlreadyExist.dataValues;
-          if (
-            data.factura_ciaros > 0
-          ) {
+          if (data.factura_ciaros > 0) {
             if ([data.F, data.L, data.P].filter((i) => i == "").length < 3) {
               if (fieldsLength == 0) {
                 payoutAlreadyExist.set({
@@ -378,6 +394,9 @@ export class SettlementMiddleware {
           });
         }
 
+        if (payout.factura == 0) {
+          errors.push({ index: i, field: "Factura", fill: true });
+        }
         if (payout.fecha_vence == "") {
           errors.push({
             index: payouts.with_user.length + i,
@@ -462,24 +481,27 @@ export class SettlementMiddleware {
           payout.factura_ciaros == 0 ||
           String(payout.factura_ciaros).trim() == ""
         ) {
-          // Si los campos estan completos y no tiene numero de factura
-          payout.tipo = LiquidacionTypes.NEGOCIO_LIBERADO;
-          payout.estado = LiquidacionStates.POR_FACTURAR;
-        } else {
-          if (payout.ori && String(payout.ori).includes("PXC")) {
-            // Todas las S y no esta PXC
-            payout.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
-            payout.estado = LiquidacionStates.POR_LIBERAR;
-          } else {
-            if (fieldsLength == 0) {
-              // Si los campos estan completos y tiene numero de factura
-              payout.tipo = LiquidacionTypes.PRE_LIQUIDACIONES;
-              payout.estado = LiquidacionStates.LISTA;
-            } else {
-              // Si los campos estan incompletos y tiene numero de factura
+          if (fieldsLength == 0) {
+            if (payout.ori && String(payout.ori).includes("PXC")) {
               payout.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
               payout.estado = LiquidacionStates.POR_LIBERAR;
+            } else {
+              payout.tipo = LiquidacionTypes.NEGOCIO_LIBERADO;
+              payout.estado = LiquidacionStates.POR_FACTURAR;
             }
+          } else {
+            payout.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
+            payout.estado = LiquidacionStates.POR_LIBERAR;
+          }
+        } else {
+          if (fieldsLength == 0) {
+            // Si los campos estan completos y tiene numero de factura
+            payout.tipo = LiquidacionTypes.PRE_LIQUIDACIONES;
+            payout.estado = LiquidacionStates.LISTA;
+          } else {
+            // Si los campos estan incompletos y tiene numero de factura
+            payout.tipo = LiquidacionTypes.NEGOCIO_PENDIENTE;
+            payout.estado = LiquidacionStates.POR_LIBERAR;
           }
         }
       }
