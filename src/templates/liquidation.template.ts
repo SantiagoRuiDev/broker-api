@@ -318,7 +318,7 @@ html, body {
       )}</strong></div>
     </div>
     <div class="subtotal-box">
-      <h1>SUBTOTAL COMISIÓN: ${formatUSD(subtotal)}</h1>
+      <h1>SUBTOTAL PARA FACTURAR: ${formatUSD(subtotal)}</h1>
     </div>
   </div>
 

@@ -36,6 +36,8 @@ export class AnalyticController {
           },
         },
       });
+      const pendingPayments = await Liquidaciones.findAll({where: {tipo: LiquidacionTypes.NEGOCIO_PENDIENTE}})
+      const missingInformation = await Liquidaciones.findAll({where: {tipo: LiquidacionTypes.NEGOCIO_LIBERADO}})
       const mappedPayouts: PayoutsMonthlyStat[] = [];
       const months = categories;
       for(const month of months){
@@ -48,7 +50,7 @@ export class AnalyticController {
           statExist.quantity++;
         }
       }
-      res.status(200).json({ clients: clients.length, agents: agents.length, monthly_payouts: mappedPayouts });
+      res.status(200).json({ clients: clients.length, agents: agents.length, monthly_payouts: mappedPayouts, pending_payments: pendingPayments.length, missing_information: missingInformation.length });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

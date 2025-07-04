@@ -165,6 +165,8 @@ export class SettlementMiddleware {
         const payoutAlreadyExist = await Liquidaciones.findOne({
           where: {
             factura: payout.factura,
+            orden: payout.orden,
+            anexo: payout.anexo,
             endoso: payout.endoso,
             documento: payout.documento,
             poliza: payout.poliza,
@@ -189,6 +191,7 @@ export class SettlementMiddleware {
                 payouts.with_user = payouts.with_user.filter(
                   (i: ISettlement) => i != payout
                 );
+                i--;
                 continue;
               }
             }
@@ -205,6 +208,7 @@ export class SettlementMiddleware {
             payouts.with_user = payouts.with_user.filter(
               (i: ISettlement) => i != payout
             );
+            i--;
             continue;
           }
           errors.push({
@@ -322,6 +326,8 @@ export class SettlementMiddleware {
         const payoutAlreadyExist = await Liquidaciones.findOne({
           where: {
             factura: payout.factura,
+            orden: payout.orden,
+            anexo: payout.anexo,
             endoso: payout.endoso,
             documento: payout.documento,
             poliza: payout.poliza,
@@ -346,6 +352,7 @@ export class SettlementMiddleware {
                 payouts.without_user = payouts.without_user.filter(
                   (i: ISettlement) => i != payout
                 );
+                i--;
                 continue;
               }
             }
@@ -362,6 +369,7 @@ export class SettlementMiddleware {
             payouts.without_user = payouts.without_user.filter(
               (i: ISettlement) => i != payout
             );
+            i--;
             continue;
           }
           errors.push({

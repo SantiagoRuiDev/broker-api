@@ -6,6 +6,7 @@ import {
   Aseguradoras,
   Configuracion,
   Finalizadas,
+  Sucursales,
 } from "../database/connection";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -316,9 +317,8 @@ export class SettlementController {
       }
 
       const liquidation_number = lastLiquidation
-        ? Number(
-            lastLiquidation.dataValues.numero_liquidacion.split("/")[0]
-          ) + 1
+        ? Number(lastLiquidation.dataValues.numero_liquidacion.split("/")[0]) +
+          1
         : 1;
 
       res.status(200).json({
@@ -357,10 +357,8 @@ export class SettlementController {
             },
           ],
         });
-        if (!payouts) {
-          res.status(404).json({ message: "No encontramos Liquidaciones" });
-          return;
-        }
+        res.status(200).json(payouts);
+        return;
       }
       if (!finished && !cluster) {
         payouts = await Liquidaciones.findAll({
@@ -585,6 +583,10 @@ export class SettlementController {
             where: { tipo: type },
             include: [
               {
+                model: Sucursales, // Modelo de Clientes
+                required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
+              },
+              {
                 model: Aseguradoras, // Modelo de Clientes
                 required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
               },
@@ -735,14 +737,17 @@ export class SettlementController {
         }
 
         const filename =
-        String(String(liq.dataValues.FinalizadaNumeroLiquidacion).split('/')[0]).padStart(2, '0') +
-        String(liq.dataValues.Subagente.nombres).toUpperCase() + String(liq.dataValues.Subagente.apellidos).toUpperCase();
+          String(
+            String(liq.dataValues.FinalizadaNumeroLiquidacion).split("/")[0]
+          ).padStart(2, "0") +
+          String(liq.dataValues.Subagente.nombres).toUpperCase() +
+          String(liq.dataValues.Subagente.apellidos).toUpperCase();
         const config = await Configuracion.findOne({
           where: { id: "CONFIGURACION" },
         });
         res.setHeader(
           "Content-Disposition",
-          'attachment; filename="' + filename + '"'
+          'attachment; filename="' + filename.trim() + '"'
         );
         res.setHeader("Content-Type", "text/plain");
         res
@@ -792,11 +797,19 @@ export class SettlementController {
         settlementExist.dataValues.FinalizadaNumeroLiquidacion;
       if (alreadyLiquidated) {
         // Si el negocio fue liquidado.
-        await settlementExist.update({
-          estado: LiquidacionStates.LISTA,
-          tipo: LiquidacionTypes.PRE_LIQUIDACIONES,
-          FinalizadaNumeroLiquidacion: null,
-        });
+        if (settlementExist.dataValues.factura_ciaros > 0) {
+          await settlementExist.update({
+            estado: LiquidacionStates.LISTA,
+            tipo: LiquidacionTypes.PRE_LIQUIDACIONES,
+            FinalizadaNumeroLiquidacion: null,
+          });
+        } else {
+          await settlementExist.update({
+            estado: LiquidacionStates.POR_FACTURAR,
+            tipo: LiquidacionTypes.NEGOCIO_LIBERADO,
+            FinalizadaNumeroLiquidacion: null,
+          });
+        }
         const cluster = await Finalizadas.findOne({
           where: { numero_liquidacion: alreadyLiquidated },
         });
@@ -827,12 +840,10 @@ export class SettlementController {
                 Calc.round(calculator.calcTotal(), 4),
             });
           }
-          res
-            .status(201)
-            .json({
-              message:
-                "El negocio volvio a pre-liquidación y el kanban fue actualizado",
-            });
+          res.status(201).json({
+            message:
+              "El negocio volvio a pre-liquidación y el kanban fue actualizado",
+          });
           return;
         }
       }
@@ -957,10 +968,13 @@ export class SettlementController {
       const config = await Configuracion.findOne({
         where: { id: "CONFIGURACION" },
       });
-      
+
       const filename =
-        String(String(liq.dataValues.FinalizadaNumeroLiquidacion).split('/')[0]).padStart(2, '0') +
-        String(liq.dataValues.Subagente.nombres).toUpperCase() + String(liq.dataValues.Subagente.apellidos).toUpperCase();
+        String(
+          String(liq.dataValues.FinalizadaNumeroLiquidacion).split("/")[0]
+        ).padStart(2, "0") +
+        String(liq.dataValues.Subagente.nombres).toUpperCase() +
+        String(liq.dataValues.Subagente.apellidos).toUpperCase();
       res.setHeader(
         "Content-Disposition",
         'attachment; filename="' + filename + '"'
@@ -1025,8 +1039,13 @@ export class SettlementController {
       }
 
       const filename =
-        String(String(payouts[0].dataValues.FinalizadaNumeroLiquidacion).split('/')[0]).padStart(2, '0') +
-        String(agent.dataValues.nombres).toUpperCase() + String(agent.dataValues.apellidos).toUpperCase();
+        String(
+          String(payouts[0].dataValues.FinalizadaNumeroLiquidacion).split(
+            "/"
+          )[0]
+        ).padStart(2, "0") +
+        String(agent.dataValues.nombres).toUpperCase() +
+        String(agent.dataValues.apellidos).toUpperCase();
 
       const pdfBuffer = await generatePDF(
         getLiquidationTemplate(payouts, agent.dataValues)
@@ -1036,7 +1055,7 @@ export class SettlementController {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${filename}.pdf"`
+        `attachment; filename="${filename.trim()}.pdf"`
       );
 
       res.send(pdfBuffer);
