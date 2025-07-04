@@ -285,24 +285,23 @@ export class SettlementController {
         ],
       });
 
-      const lastLiquidation = await Liquidaciones.findOne({
-        where: { tipo: "Consolidado" },
+      const lastLiquidation = await Finalizadas.findOne({
         order: [
           [
             Sequelize.literal(
-              `CAST(SUBSTRING_INDEX(FinalizadaNumeroLiquidacion, '/', -1) AS UNSIGNED)`
+              `CAST(SUBSTRING_INDEX(numero_liquidacion, '/', -1) AS UNSIGNED)`
             ),
             "DESC",
           ], // Año
           [
             Sequelize.literal(
-              `CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(FinalizadaNumeroLiquidacion, '/', 2), '/', -1) AS UNSIGNED)`
+              `CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(numero_liquidacion, '/', 2), '/', -1) AS UNSIGNED)`
             ),
             "DESC",
           ], // Mes
           [
             Sequelize.literal(
-              `CAST(SUBSTRING_INDEX(FinalizadaNumeroLiquidacion, '/', 1) AS UNSIGNED)`
+              `CAST(SUBSTRING_INDEX(numero_liquidacion, '/', 1) AS UNSIGNED)`
             ),
             "DESC",
           ], // Secuencial
@@ -318,7 +317,7 @@ export class SettlementController {
 
       const liquidation_number = lastLiquidation
         ? Number(
-            lastLiquidation.dataValues.FinalizadaNumeroLiquidacion.split("/")[0]
+            lastLiquidation.dataValues.numero_liquidacion.split("/")[0]
           ) + 1
         : 1;
 
