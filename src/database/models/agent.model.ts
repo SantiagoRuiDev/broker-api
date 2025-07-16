@@ -70,52 +70,12 @@ export const model = (sequelize: any, DataTypes: any) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      iva: {
-        type: DataTypes.FLOAT,
-        allowNull: true,
-      },
-      ret_iva: {
-        type: DataTypes.FLOAT,
-        allowNull: true,
-      },
-      ret_renta: {
-        type: DataTypes.FLOAT,
-        allowNull: true,
-      },
-      gastos_adm: {
-        type: DataTypes.FLOAT,
-        allowNull: true,
-      },
-      executivoCiarios: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-      },
-      tipo_de_pago: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
       numero_cuenta: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      numero_secuencial: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      numero_de_comprobante: {
         type: DataTypes.STRING,
         allowNull: true,
       },
       codigo_de_beneficiario: {
         type: DataTypes.STRING,
-        allowNull: true,
-      },
-      moneda: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      valor: {
-        type: DataTypes.FLOAT,
         allowNull: true,
       },
       tipo_de_cuenta: {
@@ -167,10 +127,6 @@ export const model = (sequelize: any, DataTypes: any) => {
         allowNull: true,
       },
       ciudad: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      forma_de_pago: {
         type: DataTypes.STRING,
         allowNull: true,
       },

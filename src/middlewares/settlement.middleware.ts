@@ -306,6 +306,11 @@ export class SettlementMiddleware {
         } else {
           if (fieldsLength == 0) {
             // Si los campos estan completos y tiene numero de factura
+            if (String(payout.endoso).trim() == "RES") {
+              payout.tipo = LiquidacionTypes.CONSOLIDADO;
+              payout.estado = LiquidacionStates.EMITIDO;
+              continue;
+            }
             payout.tipo = LiquidacionTypes.PRE_LIQUIDACIONES;
             payout.estado = LiquidacionStates.LISTA;
           } else {
@@ -504,6 +509,11 @@ export class SettlementMiddleware {
         } else {
           if (fieldsLength == 0) {
             // Si los campos estan completos y tiene numero de factura
+            if (String(payout.endoso).trim() == "RES") {
+              payout.tipo = LiquidacionTypes.CONSOLIDADO;
+              payout.estado = LiquidacionStates.EMITIDO;
+              continue;
+            }
             payout.tipo = LiquidacionTypes.PRE_LIQUIDACIONES;
             payout.estado = LiquidacionStates.LISTA;
           } else {

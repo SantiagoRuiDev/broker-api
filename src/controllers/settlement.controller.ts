@@ -575,6 +575,10 @@ export class SettlementController {
                 model: Finalizadas, // Modelo de Clientes
                 required: false, // `false` para LEFT JOIN, `true` para INNER JOIN
               },
+              {
+                model: Subagentes,
+                required: false,
+              },
             ],
             order: [["fecha_vence", "DESC"]],
           });
@@ -593,6 +597,10 @@ export class SettlementController {
               {
                 model: Clientes, // Modelo de Clientes
                 required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
+              },
+              {
+                model: Subagentes,
+                required: true,
               },
             ],
             order: [["fecha_vence", "DESC"]],
@@ -969,11 +977,11 @@ export class SettlementController {
         where: { id: "CONFIGURACION" },
       });
 
-      const filename =
+      const filename = "LIQUIDACION " +
         String(
           String(liq.dataValues.FinalizadaNumeroLiquidacion).split("/")[0]
-        ).padStart(2, "0") +
-        String(liq.dataValues.Subagente.nombres).toUpperCase() +
+        ).padStart(2, "0") + " "
+        String(liq.dataValues.Subagente.nombres).toUpperCase() + " "
         String(liq.dataValues.Subagente.apellidos).toUpperCase();
       res.setHeader(
         "Content-Disposition",
@@ -1038,13 +1046,13 @@ export class SettlementController {
         );
       }
 
-      const filename =
+      const filename = "LIQUIDACION " + 
         String(
           String(payouts[0].dataValues.FinalizadaNumeroLiquidacion).split(
             "/"
           )[0]
-        ).padStart(2, "0") +
-        String(agent.dataValues.nombres).toUpperCase() +
+        ).padStart(2, "0") + " "
+        String(agent.dataValues.nombres).toUpperCase() + " "
         String(agent.dataValues.apellidos).toUpperCase();
 
       const pdfBuffer = await generatePDF(
@@ -1055,7 +1063,7 @@ export class SettlementController {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${filename.trim()}.pdf"`
+        `attachment; filename="${filename}.pdf"`
       );
 
       res.send(pdfBuffer);
