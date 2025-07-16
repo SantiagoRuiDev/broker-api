@@ -287,6 +287,12 @@ export class SettlementMiddleware {
           }
         }
 
+        const expire_date = new Date(payout.fecha_vence)
+        payout.fecha_vence = expire_date.setDate(expire_date.getDate() - 1)
+        
+        const contab_date = new Date(payout.f_contab)
+        payout.f_contab = contab_date.setDate(contab_date.getDate() - 1)
+
         if (
           payout.factura_ciaros == 0 ||
           String(payout.factura_ciaros).trim() == ""
@@ -489,6 +495,12 @@ export class SettlementMiddleware {
             });
           }
         }
+
+        const expire_date = new Date(payout.fecha_vence)
+        payout.fecha_vence = expire_date.setDate(expire_date.getDate() - 1)
+        
+        const contab_date = new Date(payout.f_contab)
+        payout.f_contab = contab_date.setDate(contab_date.getDate() - 1)
 
         if (
           payout.factura_ciaros == 0 ||
