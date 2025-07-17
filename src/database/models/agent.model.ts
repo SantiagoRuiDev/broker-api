@@ -122,7 +122,7 @@ export const model = (sequelize: any, DataTypes: any) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      cedula: {
+      documento: {
         type: DataTypes.STRING,
         allowNull: true,
       },

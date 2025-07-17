@@ -27,7 +27,7 @@ export interface IAgent {
   localidad_de_cobro?: string;
   referencia?: string;
   referencia_adicional?: string;
-  cedula?: string;
+  documento?: string;
   ciudad?: string;
   tarifa_comision?: number;
   liderId?: string;
