@@ -16,7 +16,7 @@ export const getTextTemplate = (payout: ISettlementMapped, config: IConfiguratio
     const tipo_de_cuenta = agent.tipo_de_cuenta ? agent.tipo_de_cuenta.toUpperCase() : 0;
     const numero_cuenta = agent.numero_cuenta ? agent.numero_cuenta : 0;
     const tipo_de_documento = agent.tipo_de_documento ? agent.tipo_de_documento.toUpperCase().charAt(0) : 0;
-    const cedula = agent.cedula ? agent.cedula : 0;
+    const documento = agent.documento ? agent.documento : 0;
     const nombre = (agent.nombres != null && agent.apellidos != null) ? agent.nombres.toUpperCase() + " " + agent.apellidos.toUpperCase() : "SIN NOMBRE";
      return (
       config.tipo + "	" +
@@ -40,7 +40,7 @@ export const getTextTemplate = (payout: ISettlementMapped, config: IConfiguratio
       "	" +
       tipo_de_documento +
       "	" +
-      cedula +
+      documento +
       "	" +
       nombre +
       "		" +
