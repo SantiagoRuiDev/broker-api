@@ -37,6 +37,13 @@ export class AgentController {
       agent.id = uuidv4();
       if (String(agent.liderId).trim() == "") {
         agent.liderId = null;
+      } else {
+        const leader = await Subagentes.findOne({
+          where: { codigo: agent.liderId },
+        });
+        if (!leader) {
+          throw new Error("El agente lider que intentas asignar no existe");
+        }
       }
 
       const savedAgent = await Subagentes.create(agent);
@@ -89,7 +96,9 @@ export class AgentController {
       }
 
       if (String(agent.liderId).trim() != "") {
-        const leader = await Subagentes.findOne({ where: { codigo: agent.liderId } });
+        const leader = await Subagentes.findOne({
+          where: { codigo: agent.liderId },
+        });
         if (!leader) {
           throw new Error("El agente lider que intentas asignar no existe");
         }
