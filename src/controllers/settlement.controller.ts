@@ -169,6 +169,7 @@ export class SettlementController {
                 codigo: tempCode,
                 estatus: "Activo",
                 rol: "Subagente",
+                liderId: null,
               });
               agents = await Subagentes.findAll();
               settlement.SubagenteCodigo = tempCode;
@@ -181,6 +182,7 @@ export class SettlementController {
               codigo: tempCode,
               estatus: "Activo",
               rol: "Subagente",
+              liderId: null,
             });
             agents = await Subagentes.findAll();
             settlement.SubagenteCodigo = tempCode;
@@ -220,6 +222,7 @@ export class SettlementController {
                 codigo: tempCode,
                 estatus: "Activo",
                 rol: "Subagente",
+                liderId: null,
               });
               agents = await Subagentes.findAll();
               settlement.SubagenteCodigo = tempCode;
@@ -232,6 +235,7 @@ export class SettlementController {
               codigo: tempCode,
               estatus: "Activo",
               rol: "Subagente",
+              liderId: null,
             });
             agents = await Subagentes.findAll();
             settlement.SubagenteCodigo = tempCode;
@@ -977,12 +981,14 @@ export class SettlementController {
         where: { id: "CONFIGURACION" },
       });
 
-      const filename = "LIQUIDACION " +
+      const filename =
+        "LIQUIDACION " +
         String(
           String(liq.dataValues.FinalizadaNumeroLiquidacion).split("/")[0]
-        ).padStart(2, "0") + " "
-        String(liq.dataValues.Subagente.nombres).toUpperCase() + " "
-        String(liq.dataValues.Subagente.apellidos).toUpperCase();
+        ).padStart(2, "0") +
+        " ";
+      String(liq.dataValues.Subagente.nombres).toUpperCase() + " ";
+      String(liq.dataValues.Subagente.apellidos).toUpperCase();
       res.setHeader(
         "Content-Disposition",
         'attachment; filename="' + filename + '"'
@@ -1046,14 +1052,16 @@ export class SettlementController {
         );
       }
 
-      const filename = "LIQUIDACION " + 
+      const filename =
+        "LIQUIDACION " +
         String(
           String(payouts[0].dataValues.FinalizadaNumeroLiquidacion).split(
             "/"
           )[0]
-        ).padStart(2, "0") + " "
-        String(agent.dataValues.nombres).toUpperCase() + " "
-        String(agent.dataValues.apellidos).toUpperCase();
+        ).padStart(2, "0") +
+        " ";
+      String(agent.dataValues.nombres).toUpperCase() + " ";
+      String(agent.dataValues.apellidos).toUpperCase();
 
       const pdfBuffer = await generatePDF(
         getLiquidationTemplate(payouts, agent.dataValues)

@@ -35,6 +35,10 @@ export class AgentController {
       }
 
       agent.id = uuidv4();
+      if (String(agent.liderId).trim() == "") {
+        agent.liderId = null;
+      }
+
       const savedAgent = await Subagentes.create(agent);
 
       res.status(201).json(savedAgent);
@@ -80,8 +84,15 @@ export class AgentController {
       const agent = req.body;
       const uuid = req.params.id;
 
-      if(agent.codigo == ""){
+      if (agent.codigo == "") {
         throw new Error("El codigo de agente no puede estar vacio");
+      }
+
+      if (String(agent.liderId).trim() != "") {
+        const leader = await Subagentes.findOne({ where: { codigo: agent.liderId } });
+        if (!leader) {
+          throw new Error("El agente lider que intentas asignar no existe");
+        }
       }
 
       const agentExist = await Subagentes.findOne({
@@ -105,9 +116,7 @@ export class AgentController {
         where: {},
       });
 
-      res
-        .status(201)
-        .json({ message: "Subagentes eliminados correctamente" });
+      res.status(201).json({ message: "Subagentes eliminados correctamente" });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

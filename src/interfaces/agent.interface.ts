@@ -17,9 +17,9 @@ export interface IAgent {
   numero_cuenta?: string;
   codigo_de_beneficiario?: string;
   tipo_de_cuenta?: string;
-  numero_de_cedula?: string;
   codigo_de_banco?: string;
   telefono?: string;
+  tipo?: string;
   nombre_de_beneficiario?: string;
   direccion_de_beneficiario?: string;
   ciudad_beneficiario?: string;
@@ -31,6 +31,10 @@ export interface IAgent {
   ciudad?: string;
   tarifa_comision?: number;
   liderId?: string;
+  iva?: string;
+  ret_iva?: string;
+  ret_renta?: string;
+  gastos_adm?: string;
 }
 
 enum SubAgenteRol {

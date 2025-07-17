@@ -71,6 +71,8 @@ Sucursales.hasMany(Liquidaciones);
 Aseguradoras.hasMany(Liquidaciones);
 Ramos.belongsTo(Aseguradoras);
 Sucursales.belongsTo(Aseguradoras);
+Subagentes.belongsTo(Subagentes, { as: 'parent', foreignKey: 'liderId', targetKey: 'codigo'});
+Subagentes.hasMany(Subagentes, { as: 'children', foreignKey: 'liderId', sourceKey: 'codigo' });
 Liquidaciones.belongsTo(Subagentes);
 Liquidaciones.belongsTo(Clientes);
 Liquidaciones.belongsTo(Sucursales);

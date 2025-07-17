@@ -15,7 +15,7 @@ export const model = (sequelize: any, DataTypes: any) => {
       rol: {
         type: DataTypes.ENUM("Subagente", "Lider"),
         allowNull: false,
-        default: 'Subagente'
+        default: "Subagente",
       },
       nombres: {
         type: DataTypes.STRING,
@@ -36,7 +36,7 @@ export const model = (sequelize: any, DataTypes: any) => {
       estatus: {
         type: DataTypes.ENUM("Activo", "Inactivo", "Suspendido"),
         allowNull: false,
-        default: 'Activo'
+        default: "Activo",
       },
       fecha_nacimiento: {
         type: DataTypes.DATE,
@@ -82,15 +82,15 @@ export const model = (sequelize: any, DataTypes: any) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      numero_de_cedula: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
       codigo_de_banco: {
         type: DataTypes.STRING,
         allowNull: true,
       },
       telefono: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      tipo: {
         type: DataTypes.STRING,
         allowNull: true,
       },
@@ -133,6 +133,26 @@ export const model = (sequelize: any, DataTypes: any) => {
       tarifa_comision: {
         type: DataTypes.FLOAT,
         allowNull: true,
+      },
+      iva: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+      },
+      ret_iva: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+      },
+      ret_renta: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+      },
+      gastos_adm: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+      },
+      liderId: {
+        type: DataTypes.STRING,
+        allowNull: true, // <---- Permite que esté vacío
       },
     },
     { updatedAt: false, timestamps: false }
