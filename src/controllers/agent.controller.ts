@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { generateAgentCode } from "../utils/code";
 import NodeCache from "node-cache";
 
-export const cache = new NodeCache({ stdTTL: 120 }); // 10 minutos por defecto
+export const cache = new NodeCache({ stdTTL: 180 }); // 10 minutos por defecto
 export const key = "agents";
 
 export class AgentController {
@@ -39,7 +39,7 @@ export class AgentController {
       }
 
       agent.id = uuidv4();
-      if (String(agent.liderId).trim() == "") {
+      if (agent.liderId == null || agent.liderId == undefined || String(agent.liderId).trim() == "") {
         agent.liderId = null;
       } else {
         const leader = await Subagentes.findOne({
@@ -107,7 +107,7 @@ export class AgentController {
         throw new Error("El codigo de agente no puede estar vacio");
       }
 
-      if (String(agent.liderId).trim() != "") {
+      if (agent.liderId != null && String(agent.liderId).trim() != "") {
         const leader = await Subagentes.findOne({
           where: { codigo: agent.liderId },
         });
