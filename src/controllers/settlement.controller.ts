@@ -25,6 +25,7 @@ import { getTextTemplate } from "../templates/text.template";
 import { generatePDF } from "../utils/generator";
 import { Op } from "sequelize";
 import { Calc } from "../utils/calc";
+import { cache, key } from "./agent.controller";
 
 export class SettlementController {
   constructor() {}
@@ -50,6 +51,7 @@ export class SettlementController {
             estatus: "Activo",
             rol: "Subagente",
           });
+          cache.set(key, await Subagentes.findAll());
         }
         payout.SubagenteCodigo = payout.SAge;
       } else {
@@ -73,6 +75,7 @@ export class SettlementController {
           rol: "Subagente",
         });
         payout.SubagenteCodigo = tempCode;
+        cache.set(key, await Subagentes.findAll());
       }
 
       if (user) {
@@ -172,6 +175,7 @@ export class SettlementController {
                 liderId: null,
               });
               agents = await Subagentes.findAll();
+              cache.set(key, agents);
               settlement.SubagenteCodigo = tempCode;
             } else {
               settlement.SubagenteCodigo = settlement.SAge;
@@ -185,6 +189,7 @@ export class SettlementController {
               liderId: null,
             });
             agents = await Subagentes.findAll();
+            cache.set(key, agents);
             settlement.SubagenteCodigo = tempCode;
           }
         }
@@ -225,6 +230,7 @@ export class SettlementController {
                 liderId: null,
               });
               agents = await Subagentes.findAll();
+              cache.set(key, agents);
               settlement.SubagenteCodigo = tempCode;
             } else {
               settlement.SubagenteCodigo = settlement.SAge;
@@ -238,6 +244,7 @@ export class SettlementController {
               liderId: null,
             });
             agents = await Subagentes.findAll();
+            cache.set(key, agents);
             settlement.SubagenteCodigo = tempCode;
           }
         }
@@ -986,9 +993,10 @@ export class SettlementController {
         String(
           String(liq.dataValues.FinalizadaNumeroLiquidacion).split("/")[0]
         ).padStart(2, "0") +
-        " ";
-      String(liq.dataValues.Subagente.nombres).toUpperCase() + " ";
-      String(liq.dataValues.Subagente.apellidos).toUpperCase();
+        " " +
+        String(liq.dataValues.Subagente.nombres).trim().toUpperCase() +
+        " " +
+        String(liq.dataValues.Subagente.apellidos).trim().toUpperCase();
       res.setHeader(
         "Content-Disposition",
         'attachment; filename="' + filename + '"'
@@ -1059,9 +1067,10 @@ export class SettlementController {
             "/"
           )[0]
         ).padStart(2, "0") +
-        " ";
-      String(agent.dataValues.nombres).toUpperCase() + " ";
-      String(agent.dataValues.apellidos).toUpperCase();
+        " " +
+        String(agent.dataValues.nombres).trim().toUpperCase() +
+        " " +
+        String(agent.dataValues.apellidos).trim().toUpperCase();
 
       const pdfBuffer = await generatePDF(
         getLiquidationTemplate(payouts, agent.dataValues)
