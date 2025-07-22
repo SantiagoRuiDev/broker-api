@@ -78,20 +78,8 @@ export class SettlementMiddleware {
       if (settlement.factura == 0) {
         throw new Error("Porfavor, completa el campo factura");
       }
-      if (settlement.fecha_vence == "") {
-        throw new Error("Porfavor, completa el campo fecha de vencimiento");
-      }
-      if (settlement.f_contab == "") {
-        throw new Error("Porfavor, completa el campo f/contab");
-      }
       if (settlement.comision == 0) {
         throw new Error("Porfavor, completa el campo comisión");
-      }
-      if (settlement.codigo == 0) {
-        throw new Error("Porfavor, completa el campo codigo");
-      }
-      if (settlement.endoso == "") {
-        throw new Error("Porfavor, completa el campo endoso");
       }
       if (settlement.poliza == "") {
         throw new Error("Porfavor, completa el campo poliza");
@@ -101,6 +89,16 @@ export class SettlementMiddleware {
       }
       if (settlement.cliente == "") {
         throw new Error("Porfavor, completa el campo cliente");
+      }
+
+      if (settlement.fecha_vence) {
+        const expire_date = new Date(settlement.fecha_vence);
+        settlement.fecha_vence = expire_date.setDate(expire_date.getDate() - 1);
+      }
+
+      if (settlement.f_contab) {
+        const contab_date = new Date(settlement.f_contab);
+        settlement.f_contab = contab_date.setDate(contab_date.getDate() - 1);
       }
 
       if (settlement.factura_ciaros == 0) {
@@ -245,26 +243,14 @@ export class SettlementMiddleware {
         if (payout.factura == 0) {
           errors.push({ index: i, field: "Factura", fill: true });
         }
-        if (payout.fecha_vence == "") {
-          errors.push({ index: i, field: "Fecha vencimiento", fill: true });
-        }
         if (payout.valor_prima == 0) {
           errors.push({ index: i, field: "Valor prima", fill: true });
         }
         if (payout.comision == 0) {
           errors.push({ index: i, field: "Comisión agente", fill: true });
         }
-        if (payout.codigo == 0) {
-          errors.push({ index: i, field: "Codigo", fill: true });
-        }
-        if (payout.endoso == "") {
-          errors.push({ index: i, field: "Endoso", fill: true });
-        }
         if (payout.poliza == "") {
           errors.push({ index: i, field: "Poliza", fill: true });
-        }
-        if (payout.f_contab == "") {
-          errors.push({ index: i, field: "F/Contab", fill: true });
         }
         if (payout.documento == "") {
           errors.push({ index: i, field: "Documento", fill: true });
@@ -287,11 +273,15 @@ export class SettlementMiddleware {
           }
         }
 
-        const expire_date = new Date(payout.fecha_vence)
-        payout.fecha_vence = expire_date.setDate(expire_date.getDate() - 1)
-        
-        const contab_date = new Date(payout.f_contab)
-        payout.f_contab = contab_date.setDate(contab_date.getDate() - 1)
+        if (payout.fecha_vence) {
+          const expire_date = new Date(payout.fecha_vence);
+          payout.fecha_vence = expire_date.setDate(expire_date.getDate() - 1);
+        }
+
+        if (payout.f_contab) {
+          const contab_date = new Date(payout.f_contab);
+          payout.f_contab = contab_date.setDate(contab_date.getDate() - 1);
+        }
 
         if (
           payout.factura_ciaros == 0 ||
@@ -416,13 +406,6 @@ export class SettlementMiddleware {
         if (payout.factura == 0) {
           errors.push({ index: i, field: "Factura", fill: true });
         }
-        if (payout.fecha_vence == "") {
-          errors.push({
-            index: payouts.with_user.length + i,
-            field: "Fecha vencimiento",
-            fill: true,
-          });
-        }
         if (payout.valor_prima == 0) {
           errors.push({
             index: payouts.with_user.length + i,
@@ -434,27 +417,6 @@ export class SettlementMiddleware {
           errors.push({
             index: payouts.with_user.length + i,
             field: "Comisión",
-            fill: true,
-          });
-        }
-        if (payout.codigo == 0) {
-          errors.push({
-            index: payouts.with_user.length + i,
-            field: "Codigo",
-            fill: true,
-          });
-        }
-        if (payout.endoso == "") {
-          errors.push({
-            index: payouts.with_user.length + i,
-            field: "Endoso",
-            fill: true,
-          });
-        }
-        if (payout.f_contab == "") {
-          errors.push({
-            index: payouts.with_user.length + i,
-            field: "F/Contab",
             fill: true,
           });
         }
@@ -496,11 +458,15 @@ export class SettlementMiddleware {
           }
         }
 
-        const expire_date = new Date(payout.fecha_vence)
-        payout.fecha_vence = expire_date.setDate(expire_date.getDate() - 1)
-        
-        const contab_date = new Date(payout.f_contab)
-        payout.f_contab = contab_date.setDate(contab_date.getDate() - 1)
+        if (payout.fecha_vence) {
+          const expire_date = new Date(payout.fecha_vence);
+          payout.fecha_vence = expire_date.setDate(expire_date.getDate() - 1);
+        }
+
+        if (payout.f_contab) {
+          const contab_date = new Date(payout.f_contab);
+          payout.f_contab = contab_date.setDate(contab_date.getDate() - 1);
+        }
 
         if (
           payout.factura_ciaros == 0 ||

@@ -51,6 +51,7 @@ export class SettlementController {
             estatus: "Activo",
             rol: "Subagente",
           });
+          cache.del(key);
           cache.set(key, await Subagentes.findAll());
         }
         payout.SubagenteCodigo = payout.SAge;
@@ -75,6 +76,7 @@ export class SettlementController {
           rol: "Subagente",
         });
         payout.SubagenteCodigo = tempCode;
+        cache.del(key);
         cache.set(key, await Subagentes.findAll());
       }
 
@@ -175,6 +177,7 @@ export class SettlementController {
                 liderId: null,
               });
               agents = await Subagentes.findAll();
+              cache.del(key);
               cache.set(key, agents);
               settlement.SubagenteCodigo = tempCode;
             } else {
@@ -189,6 +192,7 @@ export class SettlementController {
               liderId: null,
             });
             agents = await Subagentes.findAll();
+            cache.del(key);
             cache.set(key, agents);
             settlement.SubagenteCodigo = tempCode;
           }
@@ -230,6 +234,7 @@ export class SettlementController {
                 liderId: null,
               });
               agents = await Subagentes.findAll();
+              cache.del(key);
               cache.set(key, agents);
               settlement.SubagenteCodigo = tempCode;
             } else {
@@ -244,6 +249,7 @@ export class SettlementController {
               liderId: null,
             });
             agents = await Subagentes.findAll();
+            cache.del(key);
             cache.set(key, agents);
             settlement.SubagenteCodigo = tempCode;
           }

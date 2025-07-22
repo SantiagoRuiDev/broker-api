@@ -52,6 +52,7 @@ export class AgentController {
 
       const savedAgent = await Subagentes.create(agent);
 
+      cache.del(key);
       cache.set(key, await Subagentes.findAll());
 
       res.status(201).json(savedAgent);
@@ -123,6 +124,7 @@ export class AgentController {
       });
       if (!agentExist) throw new Error("Este agente no existe");
 
+      cache.del(key);
       cache.set(key, await Subagentes.findAll());
 
       await agentExist.update(agent);
@@ -160,6 +162,7 @@ export class AgentController {
 
       await agentExist.destroy();
 
+      cache.del(key);
       cache.set(key, await Subagentes.findAll());
 
       res.status(201).json({ message: "Agente eliminado correctamente" });
