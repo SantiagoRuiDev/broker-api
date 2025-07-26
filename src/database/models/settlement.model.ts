@@ -110,6 +110,22 @@ export const model = (sequelize: any, DataTypes: any) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
+      fecha_pagada: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      fecha_cobrada: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      fecha_factura_ciaros: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      fecha_liquidada: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      }
     },
     { updatedAt: false, timestamps: false }
   );

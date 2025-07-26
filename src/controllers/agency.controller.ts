@@ -48,7 +48,13 @@ export class AgencyController {
 
   async getAgencies(req: Request, res: Response): Promise<void> {
     try {
+      const limit = Number(req.query.limit);
+      const page = Number(req.query.page);
+      
+      const count = await Aseguradoras.count();
       const agencies = await Aseguradoras.findAll({
+        limit: limit ? limit : undefined,
+        offset: page ? (page - 1) * limit : undefined,
         include: [
           {
             model: Sucursales,
@@ -60,7 +66,7 @@ export class AgencyController {
         res.status(404).json({ message: "No encontramos Aseguradoras" });
         return;
       }
-      res.status(200).json(agencies);
+      res.status(200).json({agencies, count});
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

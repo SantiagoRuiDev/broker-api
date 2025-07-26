@@ -28,6 +28,10 @@ export interface ISettlement {
   P?: string;
   Notas?: string;
   SAge?: string;
+  fecha_cobrada: Date;
+  fecha_pagada: Date;
+  fecha_factura_ciaros: Date;
+  fecha_liquidada: Date;
 }
 
 
@@ -60,6 +64,10 @@ export interface ISettlementMapped {
   SAge?: string;
   FinalizadaNumeroLiquidacion?: string;
   Finalizada?: IFinished;
+  fecha_cobrada: Date;
+  fecha_pagada: Date;
+  fecha_factura_ciaros: Date;
+  fecha_liquidada: Date;
 }
 
 export interface IReportRow {

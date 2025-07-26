@@ -42,9 +42,7 @@ export class UserController {
 
       if (await comparePassword(user.password, existUser.get().password)) {
         const token = generateToken(existUser.get().id);
-        res
-          .status(201)
-          .json({ usuario: existUser, token: token });
+        res.status(201).json({ usuario: existUser, token: token });
       } else {
         throw new Error("Contraseña incorrecta, intenta nuevamente");
       }
@@ -79,14 +77,20 @@ export class UserController {
 
   async getUsers(req: Request, res: Response): Promise<void> {
     try {
+      const limit = Number(req.query.limit);
+      const page = Number(req.query.page);
+
+      const count = await Usuarios.count();
       const users = await Usuarios.findAll({
+        limit: limit ? limit : undefined,
+        offset: page ? (page - 1) * limit : undefined,
         attributes: { exclude: ["password"] },
       });
       if (!users) {
         res.status(404).json({ message: "No encontramos usuarios" });
         return;
       }
-      res.status(200).json(users);
+      res.status(200).json({users, count});
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
@@ -99,11 +103,14 @@ export class UserController {
       const user = req.body;
       const uuid = req.params.id;
 
-      if(user == null || user == undefined){
+      if (user == null || user == undefined) {
         throw new Error("Envia un cuerpo valido");
       }
 
-      if(Object.values(user).filter((value) => value == "" || value == null).length > 0){
+      if (
+        Object.values(user).filter((value) => value == "" || value == null)
+          .length > 0
+      ) {
         throw new Error("No puedes enviar campos vacios");
       }
 
@@ -121,21 +128,20 @@ export class UserController {
       }
     }
   }
-  
 
   async changePassword(req: CustomRequest, res: Response): Promise<void> {
     try {
       const { old_password, new_password, repeat_password } = req.body;
-      const uuid = (req.user) ? req.user.uuid : '';
+      const uuid = req.user ? req.user.uuid : "";
 
       const userExist = await Usuarios.findOne({
         where: { id: uuid },
       });
       if (!userExist) throw new Error("Este usuario no existe");
 
-      if(await comparePassword(old_password, userExist.dataValues.password)){
-        if(new_password == repeat_password){
-          userExist.update({password: await hashPassword(new_password)})
+      if (await comparePassword(old_password, userExist.dataValues.password)) {
+        if (new_password == repeat_password) {
+          userExist.update({ password: await hashPassword(new_password) });
         } else {
           throw new Error("Las contraseñas nuevas no son equivalentes");
         }

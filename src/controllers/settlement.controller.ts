@@ -25,7 +25,6 @@ import { getTextTemplate } from "../templates/text.template";
 import { generatePDF } from "../utils/generator";
 import { Op } from "sequelize";
 import { Calc } from "../utils/calc";
-import { cache, key } from "./agent.controller";
 
 export class SettlementController {
   constructor() {}
@@ -51,8 +50,6 @@ export class SettlementController {
             estatus: "Activo",
             rol: "Subagente",
           });
-          cache.del(key);
-          cache.set(key, await Subagentes.findAll());
         }
         payout.SubagenteCodigo = payout.SAge;
       } else {
@@ -76,8 +73,6 @@ export class SettlementController {
           rol: "Subagente",
         });
         payout.SubagenteCodigo = tempCode;
-        cache.del(key);
-        cache.set(key, await Subagentes.findAll());
       }
 
       if (user) {
@@ -177,8 +172,6 @@ export class SettlementController {
                 liderId: null,
               });
               agents = await Subagentes.findAll();
-              cache.del(key);
-              cache.set(key, agents);
               settlement.SubagenteCodigo = tempCode;
             } else {
               settlement.SubagenteCodigo = settlement.SAge;
@@ -192,8 +185,6 @@ export class SettlementController {
               liderId: null,
             });
             agents = await Subagentes.findAll();
-            cache.del(key);
-            cache.set(key, agents);
             settlement.SubagenteCodigo = tempCode;
           }
         }
@@ -234,8 +225,6 @@ export class SettlementController {
                 liderId: null,
               });
               agents = await Subagentes.findAll();
-              cache.del(key);
-              cache.set(key, agents);
               settlement.SubagenteCodigo = tempCode;
             } else {
               settlement.SubagenteCodigo = settlement.SAge;
@@ -249,8 +238,6 @@ export class SettlementController {
               liderId: null,
             });
             agents = await Subagentes.findAll();
-            cache.del(key);
-            cache.set(key, agents);
             settlement.SubagenteCodigo = tempCode;
           }
         }
@@ -355,6 +342,11 @@ export class SettlementController {
       let payouts: any[] = [];
 
       if (cluster) {
+        const count = await Liquidaciones.count({
+          where: {
+            FinalizadaNumeroLiquidacion: cluster,
+          },
+        });
         payouts = await Liquidaciones.findAll({
           where: {
             FinalizadaNumeroLiquidacion: cluster,
@@ -374,10 +366,11 @@ export class SettlementController {
             },
           ],
         });
-        res.status(200).json(payouts);
+        res.status(200).json({ payouts, count });
         return;
       }
       if (!finished && !cluster) {
+        const count = await Liquidaciones.count();
         payouts = await Liquidaciones.findAll({
           include: [
             {
@@ -394,7 +387,24 @@ export class SettlementController {
           res.status(404).json({ message: "No encontramos Liquidaciones" });
           return;
         }
+        res.status(200).json({ payouts, count });
       } else {
+        const count = await Liquidaciones.count({
+          where: {
+            [Op.and]: [
+              {
+                FinalizadaNumeroLiquidacion: {
+                  [Op.not]: null,
+                },
+              },
+              {
+                estado: {
+                  [Op.not]: "Archivada",
+                },
+              },
+            ],
+          },
+        });
         payouts = await Liquidaciones.findAll({
           where: {
             [Op.and]: [
@@ -429,8 +439,8 @@ export class SettlementController {
           res.status(404).json({ message: "No encontramos Liquidaciones" });
           return;
         }
+        res.status(200).json({ payouts, count });
       }
-      res.status(200).json(payouts);
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
@@ -543,6 +553,8 @@ export class SettlementController {
   async getPayoutsByType(req: Request, res: Response): Promise<void> {
     try {
       const type = req.params.type;
+      const page = Number(req.query.page);
+      const limit = Number(req.query.limit);
 
       // Usa los valores del enum LiquidacionTypes
       const validTypes: LiquidacionTypes[] = [
@@ -561,15 +573,34 @@ export class SettlementController {
 
       const full = req.query.full;
       let payouts;
+      let count;
       if (full) {
+        count = await Finalizadas.count({
+          where: { kanban: "Archivada" },
+        });
         payouts = await Finalizadas.findAll({
+          limit: limit ? limit : undefined,
+          offset: page ? (page - 1) * limit : undefined,
           where: { kanban: "Archivada" },
           include: [{ model: Subagentes, required: true }],
           order: [["fecha_pago", "DESC"]],
         });
       } else {
         if (type == LiquidacionTypes.CONSOLIDADO) {
+          count = await Liquidaciones.count({
+            where: {
+              [Op.and]: [
+                {
+                  tipo: {
+                    [Op.not]: "Negocio pendiente por liberar",
+                  },
+                },
+              ],
+            },
+          });
           payouts = await Liquidaciones.findAll({
+            limit: limit ? limit : undefined,
+            offset: page ? (page - 1) * limit : undefined,
             where: {
               [Op.and]: [
                 {
@@ -600,7 +631,12 @@ export class SettlementController {
             order: [["fecha_vence", "DESC"]],
           });
         } else {
+          count = await Liquidaciones.count({
+            where: { tipo: type },
+          });
           payouts = await Liquidaciones.findAll({
+            limit: limit ? limit : undefined,
+            offset: page ? (page - 1) * limit : undefined,
             where: { tipo: type },
             include: [
               {
@@ -630,7 +666,7 @@ export class SettlementController {
           .json({ message: "No encontramos Liquidaciones de este tipo" });
         return;
       }
-      res.status(200).json(payouts);
+      res.status(200).json({payouts, count});
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

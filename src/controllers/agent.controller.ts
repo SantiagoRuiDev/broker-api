@@ -2,10 +2,7 @@ import { Request, Response } from "express";
 import { Subagentes } from "../database/connection";
 import { v4 as uuidv4 } from "uuid";
 import { generateAgentCode } from "../utils/code";
-import NodeCache from "node-cache";
 
-export const cache = new NodeCache({ stdTTL: 180 }); // 10 minutos por defecto
-export const key = "agents";
 
 export class AgentController {
   constructor() {}
@@ -52,9 +49,6 @@ export class AgentController {
 
       const savedAgent = await Subagentes.create(agent);
 
-      cache.del(key);
-      cache.set(key, await Subagentes.findAll());
-
       res.status(201).json(savedAgent);
     } catch (error) {
       if (error instanceof Error) {
@@ -65,18 +59,20 @@ export class AgentController {
 
   async getAgents(req: Request, res: Response): Promise<void> {
     try {
-      const isCached = cache.get(key);
-      if (isCached) {
-        res.status(200).json(isCached);
-        return;
-      }
-      const agents = await Subagentes.findAll();
+      const limit = Number(req.query.limit);
+      const page = Number(req.query.page);
+      
+      const count = await Subagentes.count();
+      const agents = await Subagentes.findAll({
+        limit: limit ? limit : undefined,
+        offset: page ? (page - 1) * limit : undefined,
+      });
+
       if (!agents) {
         res.status(404).json({ message: "No encontramos agentes" });
         return;
       }
-      cache.set(key, agents);
-      res.status(200).json(agents);
+      res.status(200).json({agents, count});
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
@@ -124,8 +120,7 @@ export class AgentController {
       });
       if (!agentExist) throw new Error("Este agente no existe");
 
-      cache.del(key);
-      cache.set(key, await Subagentes.findAll());
+      const agents = await Subagentes.findAll();
 
       await agentExist.update(agent);
 
@@ -161,9 +156,6 @@ export class AgentController {
       if (!agentExist) throw new Error("Este agente no existe");
 
       await agentExist.destroy();
-
-      cache.del(key);
-      cache.set(key, await Subagentes.findAll());
 
       res.status(201).json({ message: "Agente eliminado correctamente" });
     } catch (error) {

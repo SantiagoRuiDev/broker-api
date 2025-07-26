@@ -27,12 +27,19 @@ export class ClientController {
 
   async getClients(req: Request, res: Response): Promise<void> {
     try {
-      const clients = await Clientes.findAll();
+      const limit = Number(req.query.limit);
+      const page = Number(req.query.page);
+
+      const count = await Clientes.count();
+      const clients = await Clientes.findAll({
+        limit: limit ? limit : undefined,
+        offset: page ? (page - 1) * limit : undefined,
+      });
       if (!clients) {
         res.status(404).json({ message: "No encontramos clientes" });
         return;
       }
-      res.status(200).json(clients);
+      res.status(200).json({clients, count});
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
