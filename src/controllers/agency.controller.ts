@@ -122,14 +122,20 @@ export class AgencyController {
 
   async getAgencyCodes(req: Request, res: Response): Promise<void> {
     try {
+      const limit = Number(req.query.limit);
+      const page = Number(req.query.page);
+      
+      const count = await Ramos.count();
       const agency_codes = await Ramos.findAll({
+        limit: limit ? limit : undefined,
+        offset: page ? (page - 1) * limit : undefined,
         include: [{ model: Aseguradoras, required: true }],
       });
       if (!agency_codes) {
         res.status(404).json({ message: "No encontramos codigos ramo" });
         return;
       }
-      res.status(200).json(agency_codes);
+      res.status(200).json({codes: agency_codes, count: count});
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
