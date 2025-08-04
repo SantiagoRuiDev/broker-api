@@ -3,6 +3,7 @@ import { comparePassword, hashPassword } from "../utils/password";
 import { generateToken } from "../utils/token";
 import { Usuarios } from "../database/connection";
 import { CustomRequest } from "../interfaces/custom_request.interface";
+import { Op } from "sequelize";
 
 export class UserController {
   constructor() {}
@@ -79,18 +80,42 @@ export class UserController {
     try {
       const limit = Number(req.query.limit);
       const page = Number(req.query.page);
+      const name = req.query.name;
 
-      const count = await Usuarios.count();
-      const users = await Usuarios.findAll({
-        limit: limit ? limit : undefined,
-        offset: page ? (page - 1) * limit : undefined,
-        attributes: { exclude: ["password"] },
-      });
+      let count = 0;
+      let users = null;
+
+      if (name) {
+        count = await Usuarios.count({
+          where: {
+            nombre: {
+              [Op.like]: `%${name}%`,
+            },
+          },
+        });
+        users = await Usuarios.findAll({
+          limit: limit ? limit : undefined,
+          offset: page ? (page - 1) * limit : undefined,
+          where: {
+            nombre: {
+              [Op.like]: `%${name}%`,
+            },
+          },
+          attributes: { exclude: ["password"] },
+        });
+      } else {
+        count = await Usuarios.count();
+        users = await Usuarios.findAll({
+          limit: limit ? limit : undefined,
+          offset: page ? (page - 1) * limit : undefined,
+          attributes: { exclude: ["password"] },
+        });
+      }
       if (!users) {
         res.status(404).json({ message: "No encontramos usuarios" });
         return;
       }
-      res.status(200).json({users, count});
+      res.status(200).json({ users, count });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

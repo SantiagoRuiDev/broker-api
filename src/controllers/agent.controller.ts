@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { Subagentes } from "../database/connection";
 import { v4 as uuidv4 } from "uuid";
 import { generateAgentCode } from "../utils/code";
-
+import { Op } from "sequelize";
 
 export class AgentController {
   constructor() {}
@@ -36,7 +36,11 @@ export class AgentController {
       }
 
       agent.id = uuidv4();
-      if (agent.liderId == null || agent.liderId == undefined || String(agent.liderId).trim() == "") {
+      if (
+        agent.liderId == null ||
+        agent.liderId == undefined ||
+        String(agent.liderId).trim() == ""
+      ) {
         agent.liderId = null;
       } else {
         const leader = await Subagentes.findOne({
@@ -61,18 +65,68 @@ export class AgentController {
     try {
       const limit = Number(req.query.limit);
       const page = Number(req.query.page);
-      
-      const count = await Subagentes.count();
-      const agents = await Subagentes.findAll({
-        limit: limit ? limit : undefined,
-        offset: page ? (page - 1) * limit : undefined,
-      });
+      const name = req.query.name;
+
+      let count = 0;
+      let agents = null;
+      if (name) {
+        count = await Subagentes.count({
+          where: {
+            [Op.or]: [
+              {
+                nombres: {
+                  [Op.like]: `%${name}%`,
+                },
+              },
+              {
+                apellidos: {
+                  [Op.like]: `%${name}%`,
+                },
+              },
+              {
+                codigo: {
+                  [Op.like]: `%${name}%`,
+                },
+              },
+            ],
+          },
+        });
+        agents = await Subagentes.findAll({
+          limit: limit ? limit : undefined,
+          offset: page ? (page - 1) * limit : undefined,
+          where: {
+            [Op.or]: [
+              {
+                nombres: {
+                  [Op.like]: `%${name}%`,
+                },
+              },
+              {
+                apellidos: {
+                  [Op.like]: `%${name}%`,
+                },
+              },
+              {
+                codigo: {
+                  [Op.like]: `%${name}%`,
+                },
+              },
+            ],
+          },
+        });
+      } else {
+        count = await Subagentes.count();
+        agents = await Subagentes.findAll({
+          limit: limit ? limit : undefined,
+          offset: page ? (page - 1) * limit : undefined,
+        });
+      }
 
       if (!agents) {
         res.status(404).json({ message: "No encontramos agentes" });
         return;
       }
-      res.status(200).json({agents, count});
+      res.status(200).json({ agents, count });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

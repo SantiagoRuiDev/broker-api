@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Clientes } from "../database/connection";
 import { v4 as uuidv4 } from "uuid";
+import { Op } from "sequelize";
 
 export class ClientController {
   constructor() {}
@@ -15,7 +16,7 @@ export class ClientController {
       if (alreadyCorreo)
         throw new Error("Un cliente ya ha sido registrado bajo este correo");
 
-      const savedClient = await Clientes.create({id: uuidv4(), ...client});
+      const savedClient = await Clientes.create({ id: uuidv4(), ...client });
 
       res.status(201).json(savedClient);
     } catch (error) {
@@ -29,17 +30,39 @@ export class ClientController {
     try {
       const limit = Number(req.query.limit);
       const page = Number(req.query.page);
+      const name = req.query.name;
 
-      const count = await Clientes.count();
-      const clients = await Clientes.findAll({
-        limit: limit ? limit : undefined,
-        offset: page ? (page - 1) * limit : undefined,
-      });
+      let count = 0;
+      let clients = null;
+      if (name) {
+        count = await Clientes.count({
+          where: {
+            nombre: {
+              [Op.like]: `%${name}%`,
+            },
+          },
+        });
+        clients = await Clientes.findAll({
+          limit: limit ? limit : undefined,
+          offset: page ? (page - 1) * limit : undefined,
+          where: {
+            nombre: {
+              [Op.like]: `%${name}%`,
+            },
+          },
+        });
+      } else {
+        count = await Clientes.count();
+        clients = await Clientes.findAll({
+          limit: limit ? limit : undefined,
+          offset: page ? (page - 1) * limit : undefined,
+        });
+      }
       if (!clients) {
         res.status(404).json({ message: "No encontramos clientes" });
         return;
       }
-      res.status(200).json({clients, count});
+      res.status(200).json({ clients, count });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
@@ -73,9 +96,7 @@ export class ClientController {
         where: {},
       });
 
-      res
-        .status(201)
-        .json({ message: "Clientes eliminados correctamente" });
+      res.status(201).json({ message: "Clientes eliminados correctamente" });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

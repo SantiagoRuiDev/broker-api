@@ -9,7 +9,7 @@ import {
 } from "../database/connection";
 import { v4 as uuidv4 } from "uuid";
 import { getReportTemplate } from "../templates/report.template";
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import {
   IReportRow,
   LiquidacionStates,
@@ -50,23 +50,53 @@ export class AgencyController {
     try {
       const limit = Number(req.query.limit);
       const page = Number(req.query.page);
-      
-      const count = await Aseguradoras.count();
-      const agencies = await Aseguradoras.findAll({
-        limit: limit ? limit : undefined,
-        offset: page ? (page - 1) * limit : undefined,
-        include: [
-          {
-            model: Sucursales,
-            required: false,
+      const name = req.query.name;
+
+      let count = 0;
+      let agencies = null;
+
+      if (name) {
+        count = await Aseguradoras.count({
+          where: {
+            nombre: {
+              [Op.like]: `%${name}%`,
+            },
           },
-        ],
-      });
+        });
+        agencies = await Aseguradoras.findAll({
+          limit: limit ? limit : undefined,
+          offset: page ? (page - 1) * limit : undefined,
+          where: {
+            nombre: {
+              [Op.like]: `%${name}%`,
+            },
+          },
+          include: [
+            {
+              model: Sucursales,
+              required: false,
+            },
+          ],
+        });
+      } else {
+        count = await Aseguradoras.count();
+        agencies = await Aseguradoras.findAll({
+          limit: limit ? limit : undefined,
+          offset: page ? (page - 1) * limit : undefined,
+          include: [
+            {
+              model: Sucursales,
+              required: false,
+            },
+          ],
+        });
+      }
+
       if (!agencies) {
         res.status(404).json({ message: "No encontramos Aseguradoras" });
         return;
       }
-      res.status(200).json({agencies, count});
+      res.status(200).json({ agencies, count });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
@@ -124,18 +154,42 @@ export class AgencyController {
     try {
       const limit = Number(req.query.limit);
       const page = Number(req.query.page);
-      
-      const count = await Ramos.count();
+      const agency = req.query.agency;
+
+      const include: any[] = [
+        { model: Aseguradoras, required: true, as: "Aseguradora" },
+      ];
+      const where: any = {
+        AseguradoraId: {
+          [Op.not]: null,
+        },
+      };
+
+      if (agency && String(agency).trim() !== "") {
+        const likeTerm = `%${String(agency).trim()}%`;
+
+        where[Op.or] = [
+          Sequelize.where(
+            Sequelize.col("Aseguradora.nombre"),
+            {
+              [Op.like]: likeTerm,
+            }
+          ),
+        ];
+      }
+
+      const count = await Ramos.count({where, include});
       const agency_codes = await Ramos.findAll({
         limit: limit ? limit : undefined,
         offset: page ? (page - 1) * limit : undefined,
-        include: [{ model: Aseguradoras, required: true }],
+        include,
+        where,
       });
       if (!agency_codes) {
         res.status(404).json({ message: "No encontramos codigos ramo" });
         return;
       }
-      res.status(200).json({codes: agency_codes, count: count});
+      res.status(200).json({ codes: agency_codes, count: count });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
@@ -156,7 +210,7 @@ export class AgencyController {
     }
   }
 
-async getReportSVCS(req: Request, res: Response): Promise<void> {
+  async getReportSVCS(req: Request, res: Response): Promise<void> {
     try {
       /**
        * Buscar todas las liquidaciones realizadas a empresas de seguros en el año.
@@ -171,11 +225,11 @@ async getReportSVCS(req: Request, res: Response): Promise<void> {
       let max_date = new Date();
       max_date.setMonth(11, 31);
 
-      if(from){
+      if (from) {
         min_date = new Date(from.toString());
         min_date.setDate(min_date.getDate() + 1);
       }
-      if(to){
+      if (to) {
         max_date = new Date(to.toString());
         max_date.setDate(max_date.getDate() + 1);
       }
@@ -208,7 +262,11 @@ async getReportSVCS(req: Request, res: Response): Promise<void> {
 
       for (const payout of payouts) {
         const raw_code = payout.dataValues.poliza.split("-")[0];
-        const final_code = agency_codes.find((code) => code.dataValues.codigo_ramo == raw_code && code.dataValues.Aseguradora.ruc == payout.dataValues.Aseguradora.ruc)?.dataValues.codigo_ramo_cia;
+        const final_code = agency_codes.find(
+          (code) =>
+            code.dataValues.codigo_ramo == raw_code &&
+            code.dataValues.Aseguradora.ruc == payout.dataValues.Aseguradora.ruc
+        )?.dataValues.codigo_ramo_cia;
 
         const alreadyExist = report_row.find(
           (row) =>
@@ -243,14 +301,15 @@ async getReportSVCS(req: Request, res: Response): Promise<void> {
 
       const broker_code = config?.dataValues.codigo_broker;
 
-      const filename =
-        "I01A" + broker_code + day + "" + month + "" + year;
+      const filename = "I01A" + broker_code + day + "" + month + "" + year;
       res.setHeader(
         "Content-Disposition",
         'attachment; filename="' + filename + '"'
       );
       res.setHeader("Content-Type", "text/plain");
-      res.status(200).send(await getReportTemplate(report_row, max_date, broker_code));
+      res
+        .status(200)
+        .send(await getReportTemplate(report_row, max_date, broker_code));
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });

@@ -23,6 +23,8 @@ export class SettlementMiddleware {
       const payoutAlreadyExist = await Liquidaciones.findOne({
         where: {
           factura: settlement.factura,
+          orden: settlement.orden,
+          anexo: settlement.anexo,
           endoso: settlement.endoso,
           documento: settlement.documento,
           poliza: settlement.poliza,
@@ -94,11 +96,15 @@ export class SettlementMiddleware {
       if (settlement.fecha_vence) {
         const expire_date = new Date(settlement.fecha_vence);
         settlement.fecha_vence = expire_date.setDate(expire_date.getDate() - 1);
+      } else {
+        settlement.fecha_vence = null;
       }
 
       if (settlement.f_contab) {
         const contab_date = new Date(settlement.f_contab);
         settlement.f_contab = contab_date.setDate(contab_date.getDate() - 1);
+      } else {
+        settlement.f_contab = null;
       }
 
       if (settlement.factura_ciaros == 0) {
@@ -276,11 +282,15 @@ export class SettlementMiddleware {
         if (payout.fecha_vence) {
           const expire_date = new Date(payout.fecha_vence);
           payout.fecha_vence = expire_date.setDate(expire_date.getDate() - 1);
+        } else {
+          payout.fecha_vence = null;
         }
 
         if (payout.f_contab) {
           const contab_date = new Date(payout.f_contab);
           payout.f_contab = contab_date.setDate(contab_date.getDate() - 1);
+        } else {
+          payout.f_contab = null;
         }
 
         if (
@@ -461,11 +471,15 @@ export class SettlementMiddleware {
         if (payout.fecha_vence) {
           const expire_date = new Date(payout.fecha_vence);
           payout.fecha_vence = expire_date.setDate(expire_date.getDate() - 1);
+        } else {
+          payout.fecha_vence = null;
         }
 
         if (payout.f_contab) {
           const contab_date = new Date(payout.f_contab);
           payout.f_contab = contab_date.setDate(contab_date.getDate() - 1);
+        } else {
+          payout.f_contab = null;
         }
 
         if (

@@ -19,11 +19,10 @@ import {
 import { generateAgentCode } from "../utils/code";
 import { getPendingTemplate } from "../templates/pending.template";
 import archiver from "archiver";
-import { Sequelize } from "sequelize";
+import { col, fn, Sequelize, where as Where, Op } from "sequelize";
 import { getLiquidationTemplate } from "../templates/liquidation.template";
 import { getTextTemplate } from "../templates/text.template";
 import { generatePDF } from "../utils/generator";
-import { Op } from "sequelize";
 import { Calc } from "../utils/calc";
 
 export class SettlementController {
@@ -555,6 +554,17 @@ export class SettlementController {
       const type = req.params.type;
       const page = Number(req.query.page);
       const limit = Number(req.query.limit);
+      const person = req.query.person;
+      const state = req.query.state;
+      const agency = req.query.agency;
+      const subsidiary = req.query.subsidiary;
+      const liquidity =
+        req.query.liquidity === "true"
+          ? true
+          : req.query.liquidity === "false"
+          ? false
+          : undefined;
+      const health = req.query.health === "true";
 
       // Usa los valores del enum LiquidacionTypes
       const validTypes: LiquidacionTypes[] = [
@@ -575,87 +585,241 @@ export class SettlementController {
       let payouts;
       let count;
       if (full) {
+        const include: any[] = [
+          { model: Subagentes, required: true, as: "Subagente" },
+        ];
+        const where: any = {
+          kanban: "Archivada"
+        };
+
+        if (agency || subsidiary) {
+          const conditions: string[] = [];
+
+          if (agency) {
+            conditions.push(`L.AseguradoraId = '${agency}'`);
+          }
+
+          if (subsidiary) {
+            conditions.push(`L.SucursaleId = '${subsidiary}'`);
+          }
+
+          where[Op.and] = [
+            Sequelize.literal(`
+              EXISTS (
+                SELECT 1 FROM Liquidaciones L
+                WHERE L.FinalizadaNumeroLiquidacion = Finalizadas.numero_liquidacion
+                AND ${conditions.join(" AND ")}
+                LIMIT 1
+              )
+            `),
+          ];
+        }
+
+        if (person && String(person).trim() !== "") {
+          const likeTerm = `%${String(person).trim()}%`;
+
+          where[Op.or] = [
+            { SubagenteCodigo: { [Op.like]: likeTerm } },
+            Sequelize.where(
+              Sequelize.fn(
+                "concat",
+                Sequelize.col("Subagente.nombres"),
+                " ",
+                Sequelize.col("Subagente.apellidos")
+              ),
+              {
+                [Op.like]: likeTerm,
+              }
+            ),
+          ];
+        }
         count = await Finalizadas.count({
-          where: { kanban: "Archivada" },
+          where,
+          include,
         });
         payouts = await Finalizadas.findAll({
           limit: limit ? limit : undefined,
           offset: page ? (page - 1) * limit : undefined,
-          where: { kanban: "Archivada" },
-          include: [{ model: Subagentes, required: true }],
+          where,
+          include,
           order: [["fecha_pago", "DESC"]],
         });
       } else {
-        if (type == LiquidacionTypes.CONSOLIDADO) {
-          count = await Liquidaciones.count({
-            where: {
-              [Op.and]: [
-                {
+        if (
+          type == LiquidacionTypes.CONSOLIDADO ||
+          validTypes.includes(type as LiquidacionTypes)
+        ) {
+          const where: any = {
+            ...(type === LiquidacionTypes.CONSOLIDADO
+              ? {
                   tipo: {
                     [Op.not]: "Negocio pendiente por liberar",
                   },
-                },
-              ],
-            },
-          });
-          payouts = await Liquidaciones.findAll({
-            limit: limit ? limit : undefined,
-            offset: page ? (page - 1) * limit : undefined,
-            where: {
-              [Op.and]: [
+                }
+              : { tipo: type }),
+
+            ...(agency ? { AseguradoraId: agency } : {}),
+            ...(subsidiary ? { SucursaleId: subsidiary } : {}),
+          };
+
+          if (liquidity === true || liquidity === false) {
+            const primaCond = liquidity
+              ? { valor_prima: { [Op.lt]: 0 } }
+              : { valor_prima: { [Op.gte]: 0 } };
+
+            const comisionCond = liquidity
+              ? { comision: { [Op.lt]: 0 } }
+              : { comision: { [Op.gte]: 0 } };
+
+            where[Op.and] = [primaCond, comisionCond];
+          } else {
+            if (health) {
+              if (!where[Op.and]) where[Op.and] = [];
+              where[Op.and].push(Where(fn("TRIM", col("ori")), "AP"));
+            }
+          }
+
+          const include: any[] = [
+            { model: Sucursales, required: false },
+            { model: Aseguradoras, required: true },
+            { model: Clientes, required: true },
+            { model: Subagentes, required: true, as: "Subagente" },
+            { model: Finalizadas, required: false, as: "Finalizada" },
+          ];
+
+          if (person && String(person).trim() !== "") {
+            const likeTerm = `%${String(person).trim()}%`;
+
+            where[Op.or] = [
+              { cliente: { [Op.like]: likeTerm } },
+              Sequelize.where(
+                Sequelize.fn(
+                  "concat",
+                  Sequelize.col("Subagente.nombres"),
+                  " ",
+                  Sequelize.col("Subagente.apellidos")
+                ),
                 {
-                  tipo: {
-                    [Op.not]: "Negocio pendiente por liberar",
-                  },
+                  [Op.like]: likeTerm,
+                }
+              ),
+            ];
+          }
+
+          if (type == LiquidacionTypes.CONSOLIDADO && state != "") {
+            // Pagado sin factura
+            if (state == "Pagado sin factura") {
+              where[Op.or] = [
+                {
+                  [Op.and]: [
+                    { tipo: LiquidacionTypes.CONSOLIDADO },
+                    { factura_ciaros: 0 },
+                    { FinalizadaNumeroLiquidacion: { [Op.not]: null } },
+                  ],
                 },
-              ],
-            },
-            include: [
-              {
-                model: Aseguradoras, // Modelo de Clientes
-                required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
-              },
-              {
-                model: Clientes, // Modelo de Clientes
-                required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
-              },
-              {
-                model: Finalizadas, // Modelo de Clientes
-                required: false, // `false` para LEFT JOIN, `true` para INNER JOIN
-              },
-              {
-                model: Subagentes,
-                required: false,
-              },
-            ],
-            order: [["fecha_vence", "DESC"]],
-          });
-        } else {
-          count = await Liquidaciones.count({
-            where: { tipo: type },
-          });
+                {
+                  [Op.and]: [
+                    { tipo: LiquidacionTypes.ARCHIVADO },
+                    { factura_ciaros: 0 },
+                    { FinalizadaNumeroLiquidacion: { [Op.not]: null } },
+                  ],
+                },
+              ];
+            }
+
+            // Pendiente por facturar
+            if (state == "Por facturar") {
+              where[Op.and] = [
+                { tipo: LiquidacionTypes.NEGOCIO_LIBERADO },
+                { FinalizadaNumeroLiquidacion: null },
+              ];
+            }
+
+            // Pagado
+            if (state == "Pagado") {
+              include.forEach((inc) => {
+                if (inc.as === "Finalizada") {
+                  inc.where = {
+                    [Op.or]: [
+                      { fecha_pago: { [Op.not]: null } },
+                      { kanban: KanbanStates.PAGADA },
+                    ],
+                  };
+                  inc.required = false; // para incluir registros aunque Finalizada sea null
+                }
+              });
+
+              where[Op.or] = [
+                {
+                  FinalizadaNumeroLiquidacion: { [Op.not]: null }, // Asumiendo que la FK se llama así; si no, usa la FK correcta o alguna forma para "no tiene Finalizada"
+                  estado: LiquidacionStates.EMITIDO,
+                  tipo: LiquidacionTypes.CONSOLIDADO,
+                  endoso: { [Op.ne]: "RES" },
+                },
+                {
+                  estado: LiquidacionStates.EMITIDO,
+                  tipo: LiquidacionTypes.CONSOLIDADO,
+                  endoso: { [Op.ne]: "RES" },
+                  // Aquí no va condición de Finalizada porque ya se limita con el include
+                },
+              ];
+            }
+
+            // No pagado
+            if (state == "No pagado") {
+              include.forEach((inc) => {
+                if (inc.as === "Finalizada") {
+                  inc.where = {
+                    fecha_pago: { [Op.is]: null },
+                    kanban: { [Op.ne]: KanbanStates.PAGADA },
+                  };
+                  inc.required = true; // para incluir registros con o sin Finalizada
+                }
+              });
+
+              // En where principal ponemos condiciones que combinen:
+              where[Op.and] = [
+                {
+                  [Op.or]: [
+                    {
+                      FinalizadaNumeroLiquidacion: { [Op.is]: null }, // registros sin Finalizada
+                      estado: LiquidacionStates.EMITIDO,
+                      tipo: LiquidacionTypes.CONSOLIDADO,
+                      endoso: { [Op.ne]: "RES" },
+                    },
+                    {
+                      estado: LiquidacionStates.EMITIDO,
+                      tipo: LiquidacionTypes.CONSOLIDADO,
+                      endoso: { [Op.ne]: "RES" },
+                      // La condición sobre Finalizada está en el include.where
+                    },
+                  ],
+                },
+                {
+                  tipo: { [Op.ne]: LiquidacionTypes.NEGOCIO_LIBERADO },
+                },
+              ];
+            }
+
+            // NO aplica
+            if (state == "No aplica") {
+              where[Op.and] = [
+                {
+                  estado: LiquidacionStates.EMITIDO,
+                  tipo: LiquidacionTypes.CONSOLIDADO,
+                  endoso: "RES",
+                },
+              ];
+            }
+          }
+
+          count = await Liquidaciones.count({ where, include });
+
           payouts = await Liquidaciones.findAll({
             limit: limit ? limit : undefined,
             offset: page ? (page - 1) * limit : undefined,
-            where: { tipo: type },
-            include: [
-              {
-                model: Sucursales, // Modelo de Clientes
-                required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
-              },
-              {
-                model: Aseguradoras, // Modelo de Clientes
-                required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
-              },
-              {
-                model: Clientes, // Modelo de Clientes
-                required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
-              },
-              {
-                model: Subagentes,
-                required: true,
-              },
-            ],
+            where,
+            include,
             order: [["fecha_vence", "DESC"]],
           });
         }
@@ -666,7 +830,7 @@ export class SettlementController {
           .json({ message: "No encontramos Liquidaciones de este tipo" });
         return;
       }
-      res.status(200).json({payouts, count});
+      res.status(200).json({ payouts, count });
     } catch (error) {
       if (error instanceof Error) {
         res.status(500).json({ message: error.message });
