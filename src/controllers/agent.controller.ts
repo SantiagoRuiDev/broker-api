@@ -65,67 +65,37 @@ export class AgentController {
     try {
       const limit = Number(req.query.limit);
       const page = Number(req.query.page);
-      const name = req.query.name;
+      const name = req.query.name as string | undefined;
+      const state = req.query.state as string | undefined;
+      const doc = req.query.doc as string | undefined;
 
-      let count = 0;
-      let agents = null;
+      let where: any = {};
+
+      // filtro por nombre si lo envían
       if (name) {
-        count = await Subagentes.count({
-          where: {
-            [Op.or]: [
-              {
-                nombres: {
-                  [Op.like]: `%${name}%`,
-                },
-              },
-              {
-                apellidos: {
-                  [Op.like]: `%${name}%`,
-                },
-              },
-              {
-                codigo: {
-                  [Op.like]: `%${name}%`,
-                },
-              },
-            ],
-          },
-        });
-        agents = await Subagentes.findAll({
-          limit: limit ? limit : undefined,
-          offset: page ? (page - 1) * limit : undefined,
-          where: {
-            [Op.or]: [
-              {
-                nombres: {
-                  [Op.like]: `%${name}%`,
-                },
-              },
-              {
-                apellidos: {
-                  [Op.like]: `%${name}%`,
-                },
-              },
-              {
-                codigo: {
-                  [Op.like]: `%${name}%`,
-                },
-              },
-            ],
-          },
-        });
-      } else {
-        count = await Subagentes.count();
-        agents = await Subagentes.findAll({
-          limit: limit ? limit : undefined,
-          offset: page ? (page - 1) * limit : undefined,
-        });
+        where[Op.or] = [
+          { nombres: { [Op.like]: `%${name}%` } },
+          { apellidos: { [Op.like]: `%${name}%` } },
+          { codigo: { [Op.like]: `%${name}%` } },
+        ];
       }
 
-      if (!agents) {
-        res.status(404).json({ message: "No encontramos agentes" });
-        return;
+      // filtro por estatus si lo envían
+      if (doc) {
+        where.documento = { [Op.like]: `%${doc}%` };
       }
+      // filtro por estatus si lo envían
+      if (state) {
+        where.estatus = state;
+      }
+
+      const count = await Subagentes.count({ where });
+      const agents = await Subagentes.findAll({
+        limit: limit || undefined,
+        offset: page ? (page - 1) * limit : undefined,
+        where,
+      });
+
       res.status(200).json({ agents, count });
     } catch (error) {
       if (error instanceof Error) {

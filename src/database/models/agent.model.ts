@@ -36,7 +36,7 @@ export const model = (sequelize: any, DataTypes: any) => {
       estatus: {
         type: DataTypes.ENUM("Activo", "Inactivo", "Suspendido"),
         allowNull: false,
-        default: "Activo",
+        defaultValue: "Activo",
       },
       fecha_nacimiento: {
         type: DataTypes.DATE,
@@ -47,6 +47,10 @@ export const model = (sequelize: any, DataTypes: any) => {
         allowNull: true,
       },
       ejecutivo_ciaros: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      codigo_ejecutivo_ciaros: {
         type: DataTypes.STRING,
         allowNull: true,
       },

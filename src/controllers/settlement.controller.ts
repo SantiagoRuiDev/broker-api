@@ -388,49 +388,29 @@ export class SettlementController {
         }
         res.status(200).json({ payouts, count });
       } else {
-        const count = await Liquidaciones.count({
-          where: {
-            [Op.and]: [
-              {
-                FinalizadaNumeroLiquidacion: {
-                  [Op.not]: null,
-                },
-              },
-              {
-                estado: {
-                  [Op.not]: "Archivada",
-                },
-              },
-            ],
-          },
+        const count = await Finalizadas.count({
+          where: { kanban: { [Op.not]: "Archivada" } },
         });
-        payouts = await Liquidaciones.findAll({
-          where: {
-            [Op.and]: [
-              {
-                FinalizadaNumeroLiquidacion: {
-                  [Op.not]: null,
-                },
-              },
-              {
-                estado: {
-                  [Op.not]: "Archivada",
-                },
-              },
-            ],
-          },
+        payouts = await Finalizadas.findAll({
+          where: { kanban: { [Op.not]: "Archivada" } },
           include: [
             {
-              model: Clientes, // Modelo de Clientes
-              required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
-            },
-            {
-              model: Subagentes,
+              model: Liquidaciones,
               required: true,
-            },
-            {
-              model: Finalizadas,
-              required: true,
+              include: [
+                {
+                  model: Aseguradoras, // Modelo de Clientes
+                  required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
+                },
+                {
+                  model: Clientes, // Modelo de Clientes
+                  required: true, // `false` para LEFT JOIN, `true` para INNER JOIN
+                },
+                {
+                  model: Subagentes,
+                  required: true,
+                },
+              ],
             },
           ],
         });
@@ -552,9 +532,11 @@ export class SettlementController {
   async getPayoutsByType(req: Request, res: Response): Promise<void> {
     try {
       const type = req.params.type;
+      const business_type = req.query.type;
       const page = Number(req.query.page);
       const limit = Number(req.query.limit);
       const person = req.query.person;
+      const client = req.query.client;
       const state = req.query.state;
       const agency = req.query.agency;
       const subsidiary = req.query.subsidiary;
@@ -589,7 +571,7 @@ export class SettlementController {
           { model: Subagentes, required: true, as: "Subagente" },
         ];
         const where: any = {
-          kanban: "Archivada"
+          kanban: "Archivada",
         };
 
         if (agency || subsidiary) {
@@ -650,17 +632,40 @@ export class SettlementController {
           validTypes.includes(type as LiquidacionTypes)
         ) {
           const where: any = {
-            ...(type === LiquidacionTypes.CONSOLIDADO
-              ? {
-                  tipo: {
-                    [Op.not]: "Negocio pendiente por liberar",
-                  },
-                }
-              : { tipo: type }),
-
             ...(agency ? { AseguradoraId: agency } : {}),
             ...(subsidiary ? { SucursaleId: subsidiary } : {}),
           };
+
+          // Condición para tipo
+          if (type === LiquidacionTypes.CONSOLIDADO) {
+            where.tipo = {
+              [Op.not]: "Negocio pendiente por liberar",
+            };
+          } else if (type === LiquidacionTypes.PRE_LIQUIDACIONES) {
+            // Condición especial tipo OR
+            if (business_type == "Liquidada") {
+              where[Op.or] = [
+                {
+                  tipo: LiquidacionTypes.CONSOLIDADO,
+                  "$Finalizada.kanban$": "Emitida", // Esto apunta a la tabla relacionada
+                },
+              ];
+            } else {
+              where[Op.or] = [
+                { tipo: LiquidacionTypes.PRE_LIQUIDACIONES },
+                {
+                  tipo: LiquidacionTypes.CONSOLIDADO,
+                  "$Finalizada.kanban$": "Emitida", // Esto apunta a la tabla relacionada
+                },
+              ];
+            }
+          } else {
+            where.tipo = type;
+          }
+
+          if (client) {
+            where.ClienteId = client;
+          }
 
           if (liquidity === true || liquidity === false) {
             const primaCond = liquidity
@@ -725,6 +730,11 @@ export class SettlementController {
                   ],
                 },
               ];
+            }
+
+            if (state == "Vida") {
+              if (!where[Op.and]) where[Op.and] = [];
+              where[Op.and].push(Where(fn("TRIM", col("ori")), "AP"));
             }
 
             // Pendiente por facturar

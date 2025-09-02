@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Clientes } from "../database/connection";
+import { Aseguradoras, Clientes, Liquidaciones, Subagentes, Sucursales } from "../database/connection";
 import { v4 as uuidv4 } from "uuid";
 import { Op } from "sequelize";
 
@@ -50,12 +50,54 @@ export class ClientController {
               [Op.like]: `%${name}%`,
             },
           },
+          include: [
+            {
+              model: Liquidaciones,
+              limit: 1, // solo el último
+              order: [["fecha_importacion", "DESC"]], // ordenado por fecha o id
+              include: [
+                {
+                  model: Subagentes,
+                  required: true
+                },
+                {
+                  model: Aseguradoras,
+                  required: true
+                },
+                {
+                  model: Sucursales,
+                  required: false
+                },
+              ],
+            },
+          ],
         });
       } else {
         count = await Clientes.count();
         clients = await Clientes.findAll({
           limit: limit ? limit : undefined,
           offset: page ? (page - 1) * limit : undefined,
+          include: [
+            {
+              model: Liquidaciones,
+              limit: 1, // solo el último
+              order: [["fecha_importacion", "DESC"]], // ordenado por fecha o id
+              include: [
+                {
+                  model: Subagentes,
+                  required: true
+                },
+                {
+                  model: Aseguradoras,
+                  required: true
+                },
+                {
+                  model: Sucursales,
+                  required: false
+                },
+              ],
+            },
+          ],
         });
       }
       if (!clients) {
