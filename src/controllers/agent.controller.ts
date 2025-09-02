@@ -94,6 +94,13 @@ export class AgentController {
         limit: limit || undefined,
         offset: page ? (page - 1) * limit : undefined,
         where,
+        include: [
+          {
+            model: Subagentes,
+            as: 'parent', // Usa el alias definido
+            attributes: ['codigo', 'nombres', 'apellidos'], // Campos del líder que quieras incluir
+          },
+        ],
       });
 
       res.status(200).json({ agents, count });
