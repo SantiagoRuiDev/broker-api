@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import {
   Aseguradoras,
-  Clientes,
   Configuracion,
   Liquidaciones,
   Ramos,
@@ -12,11 +11,8 @@ import { getReportTemplate } from "../templates/report.template";
 import { Op, Sequelize } from "sequelize";
 import {
   IReportRow,
-  LiquidacionStates,
   LiquidacionTypes,
 } from "../interfaces/settlement.interface";
-import config from "../utils/config";
-import { isStringObject } from "util/types";
 
 export class AgencyController {
   constructor() {}

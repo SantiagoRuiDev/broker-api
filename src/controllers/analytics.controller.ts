@@ -3,13 +3,10 @@ import {
   Clientes,
   Liquidaciones,
   Subagentes,
-  Usuarios,
 } from "../database/connection";
-import { CustomRequest } from "../interfaces/custom_request.interface";
 import { Op } from "sequelize";
 import { LiquidacionTypes } from "../interfaces/settlement.interface";
 import {
-  categories,
   PayoutsMonthlyStat,
 } from "../interfaces/analytic.interface";
 

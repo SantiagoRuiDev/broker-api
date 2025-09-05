@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import { Aseguradoras, Clientes, Liquidaciones, Subagentes, Sucursales } from "../database/connection";
 import { v4 as uuidv4 } from "uuid";
 import { Op } from "sequelize";
+import NodeCache from "node-cache";
+
+const cache = new NodeCache();
 
 export class ClientController {
   constructor() {}
@@ -31,6 +34,18 @@ export class ClientController {
       const limit = Number(req.query.limit);
       const page = Number(req.query.page);
       const name = req.query.name;
+
+      if(!limit && !page){
+        const cachedClients = cache.get('clients');
+        if(cachedClients) {
+          res.status(200).json(cachedClients);
+          return;
+        }
+        const clients = await Clientes.findAll({attributes: ['id', 'nombre', 'correo']});
+        cache.set('clients', clients);
+        res.status(200).json(clients);
+        return;
+      }
 
       let count = 0;
       let clients = null;
