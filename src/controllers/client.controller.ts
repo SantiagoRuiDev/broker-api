@@ -42,7 +42,7 @@ export class ClientController {
           return;
         }
         const clients = await Clientes.findAll({attributes: ['id', 'nombre', 'correo']});
-        cache.set('clients', clients);
+        cache.set('clients', clients, 40000);
         res.status(200).json(clients);
         return;
       }
